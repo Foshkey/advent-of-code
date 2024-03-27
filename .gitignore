@@ -12,3 +12,15 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+# Coverage files
+coverage.info
+coverage.json
+lcov.info
+
+# CSharp builds
+obj/
+bin/
+
+# Python
+__pycache__/
