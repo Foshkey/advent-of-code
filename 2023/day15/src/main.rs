@@ -3,7 +3,7 @@ use std::{collections::HashMap, str::FromStr};
 use anyhow::{anyhow, bail, Error, Result};
 
 enum Op {
-    AddLens(Lense),
+    AddLens(Lens),
     RemoveLens(String),
 }
 
@@ -16,7 +16,7 @@ impl FromStr for Op {
                 .split_once('=')
                 .ok_or(anyhow!("Could not split at '=' in '{s}'."))?;
             let focal_length = focal_length_str.parse()?;
-            return Ok(Op::AddLens(Lense {
+            return Ok(Op::AddLens(Lens {
                 label: label.to_string(),
                 focal_length,
             }));
@@ -34,14 +34,14 @@ impl FromStr for Op {
 }
 
 #[derive(Debug)]
-struct Lense {
+struct Lens {
     label: String,
     focal_length: u8,
 }
 
 #[derive(Debug)]
 struct Box {
-    lenses: Vec<Lense>,
+    lenses: Vec<Lens>,
 }
 
 #[derive(Debug)]
@@ -65,44 +65,39 @@ impl BoxLine {
 
     fn execute(&mut self, op: Op) {
         match op {
-            Op::AddLens(lense) => self.add_lense(lense),
-            Op::RemoveLens(label) => self.remove_lense(label),
+            Op::AddLens(lens) => self.add_lens(lens),
+            Op::RemoveLens(label) => self.remove_lens(label),
         }
     }
 
-    fn add_lense(&mut self, lense: Lense) {
-        let box_index = hash(&lense.label);
+    fn add_lens(&mut self, lens: Lens) {
+        let box_index = hash(&lens.label);
 
         // Check if box exists
         if let Some(b) = self.boxes.get_mut(&box_index) {
-            // If so, check if there's already a lense with the same label
-            if let Some(lense_index) = b.lenses.iter().position(|l| l.label == lense.label) {
+            // If so, check if there's already a lens with the same label
+            if let Some(lens_index) = b.lenses.iter().position(|l| l.label == lens.label) {
                 // Replace the lense at the given index
-                b.lenses[lense_index] = lense;
+                b.lenses[lens_index] = lens;
             } else {
                 // Add the lense to the end
-                b.lenses.push(lense);
+                b.lenses.push(lens);
             }
         } else {
-            // Initialize a new box with the lense
-            self.boxes.insert(
-                box_index,
-                Box {
-                    lenses: vec![lense],
-                },
-            );
+            // Initialize a new box with the lens
+            self.boxes.insert(box_index, Box { lenses: vec![lens] });
         }
     }
 
-    fn remove_lense(&mut self, label: String) {
+    fn remove_lens(&mut self, label: String) {
         let box_index = hash(&label);
 
         // Check if box exists
         if let Some(b) = self.boxes.get_mut(&box_index) {
-            // Look for the lense with the same label
-            if let Some(lense_index) = b.lenses.iter().position(|l| l.label == label) {
+            // Look for the lens with the same label
+            if let Some(lens_index) = b.lenses.iter().position(|l| l.label == label) {
                 // Remove it
-                b.lenses.remove(lense_index);
+                b.lenses.remove(lens_index);
             }
         }
     }
