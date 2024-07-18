@@ -44,7 +44,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum TileType {
     Empty,
     Mirror(char),
@@ -247,5 +247,66 @@ mod tests {
         let input = include_str!("example.txt");
         let result = part_2(input);
         assert_eq!(51, result.unwrap());
+    }
+
+    #[test]
+    fn test_try_from_empty() {
+        let tile = Tile::try_from('.').unwrap();
+        assert_eq!(tile.tile_type, TileType::Empty);
+        assert!(tile.energized_directions.is_empty());
+    }
+
+    #[test]
+    fn test_try_from_splitter_vertical() {
+        let tile = Tile::try_from('|').unwrap();
+        assert_eq!(tile.tile_type, TileType::Splitter('|'));
+        assert!(tile.energized_directions.is_empty());
+    }
+
+    #[test]
+    fn test_try_from_splitter_horizontal() {
+        let tile = Tile::try_from('-').unwrap();
+        assert_eq!(tile.tile_type, TileType::Splitter('-'));
+        assert!(tile.energized_directions.is_empty());
+    }
+
+    #[test]
+    fn test_try_from_mirror_backslash() {
+        let tile = Tile::try_from('\\').unwrap();
+        assert_eq!(tile.tile_type, TileType::Mirror('\\'));
+        assert!(tile.energized_directions.is_empty());
+    }
+
+    #[test]
+    fn test_try_from_mirror_slash() {
+        let tile = Tile::try_from('/').unwrap();
+        assert_eq!(tile.tile_type, TileType::Mirror('/'));
+        assert!(tile.energized_directions.is_empty());
+    }
+
+    #[test]
+    fn test_try_from_unknown_character() {
+        let result = Tile::try_from('x');
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_from_str_invalid_character() {
+        let input = "ABC\nDEF\nGHI";
+        let result = Grid::from_str(input);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Unknown character: A");
+    }
+
+    #[test]
+    fn test_from_str_valid_grid() {
+        let input = ".-.\n|-|\n\\-/";
+        let result = Grid::from_str(input);
+        assert!(result.is_ok());
+        let grid = result.unwrap();
+        assert_eq!(grid.tiles.len(), 3);
+        assert_eq!(grid.tiles[0].len(), 3);
+        assert_eq!(grid.tiles[1].len(), 3);
+        assert_eq!(grid.tiles[2].len(), 3);
     }
 }
