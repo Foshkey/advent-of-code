@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Direction {
     pub x: i32,
     pub y: i32,

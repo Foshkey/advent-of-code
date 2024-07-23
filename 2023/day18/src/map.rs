@@ -1,113 +1,136 @@
-use std::fmt::Display;
+use std::collections::BTreeSet;
 
-use anyhow::Result;
-
-use crate::instruction::Instructions;
+use crate::{instruction::Instruction, point::Point, rectangle::Rectangle};
 
 pub struct Map {
-    pub cells: Vec<Vec<u32>>,
+    points: BTreeSet<Point>,
 }
 
 impl Map {
-    pub fn new(instructions: Instructions) -> Result<Self> {
-        let mut cells = vec![vec![0; 1000]; 1000];
-        let mut x = 500;
-        let mut y = 500;
+    pub fn new<I>(instructions: I) -> Self
+    where
+        I: IntoIterator<Item = Instruction>,
+    {
+        let mut points = BTreeSet::new();
+
+        let mut x = 0i64;
+        let mut y = 0i64;
 
         for instruction in instructions {
-            for _ in 0..instruction.length {
-                x = (x as i32 + instruction.direction.x) as usize;
-                y = (y as i32 + instruction.direction.y) as usize;
-                cells[y][x] = instruction.color;
-            }
+            let Instruction {
+                direction,
+                length,
+                color: _color,
+            } = instruction;
+
+            // Move x, y with the given direction and length
+            x += direction.x as i64 * length as i64;
+            y += direction.y as i64 * length as i64;
+
+            // Create new point with direction
+            points.insert(Point::new(x, y));
         }
 
-        let mut map = Map { cells };
-        map.trim();
-
-        Ok(map)
+        Map { points }
     }
 
-    pub fn trim(&mut self) {
-        let mut min_x = 1000;
-        let mut min_y = 1000;
-        let mut max_x = 0;
-        let mut max_y = 0;
+    pub fn count_filled(&self) -> u64 {
+        let mut count = 0u64;
+        let mut curr_y = None;
+        let mut lines = BTreeSet::new();
+        let mut prev_rectangles = Vec::new();
 
-        for (y, row) in self.cells.iter().enumerate() {
-            for (x, &color) in row.iter().enumerate() {
-                if color != 0 {
-                    min_x = min_x.min(x);
-                    min_y = min_y.min(y);
-                    max_x = max_x.max(x);
-                    max_y = max_y.max(y);
-                }
-            }
-        }
+        for point in self.points.iter() {
+            let Point { x, y } = point;
 
-        let mut cells = vec![vec![0; max_x - min_x + 1]; max_y - min_y + 1];
+            // Check if this is a new line
+            if Some(y) != curr_y {
+                // Build out some rectangles back to the previous y
+                if let Some(prev_y) = curr_y {
+                    let mut rectangles = Vec::new();
+                    let mut paired_line = None;
+                    for line in lines.iter() {
+                        if let Some(prev_line) = paired_line {
+                            // Create rectangle
+                            let rect = Rectangle::new(
+                                prev_line,
+                                *prev_y,
+                                (line - prev_line + 1) as u64,
+                                (y - prev_y + 1) as u64,
+                            );
 
-        for (y, row) in self.cells[min_y..=max_y].iter().enumerate() {
-            for (x, &color) in row[min_x..=max_x].iter().enumerate() {
-                cells[y][x] = color;
-            }
-        }
+                            // Add the area to the count
+                            count += rect.area();
 
-        self.cells = cells
-    }
+                            // Minus any intersections with previous rectangles
+                            for prev_rect in prev_rectangles.iter() {
+                                count -= rect.intersection(prev_rect);
+                            }
 
-    pub fn fill(&mut self) -> Result<()> {
-        let mut updated_cells = self.cells.clone();
-
-        for (y, row) in self.cells.iter().enumerate() {
-            let mut up_connections = 0;
-
-            for (x, &color) in row.iter().enumerate() {
-                if color != 0 {
-                    if let Some(&up_color) =
-                        self.cells.get(y.wrapping_sub(1)).and_then(|r| r.get(x))
-                    {
-                        if up_color != 0 {
-                            up_connections += 1;
+                            // Push the rectangle for future intersections
+                            rectangles.push(rect);
+                            paired_line = None;
+                        } else {
+                            paired_line = Some(*line);
                         }
                     }
-
-                    continue;
+                    prev_rectangles = rectangles;
                 }
 
-                if up_connections % 2 == 1 {
-                    updated_cells[y][x] = 0xFFFFFF;
-                }
+                curr_y = Some(y);
+            }
+
+            if lines.contains(x) {
+                lines.remove(x);
+            } else {
+                lines.insert(*x);
             }
         }
 
-        self.cells = updated_cells;
-
-        Ok(())
-    }
-
-    pub fn count(&self) -> u32 {
-        self.cells
-            .iter()
-            .flatten()
-            .filter(|&&color| color != 0)
-            .count() as u32
+        count
     }
 }
 
-impl Display for Map {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in &self.cells {
-            for &color in row {
-                let c = match color {
-                    0 => '.',
-                    _ => '#',
-                };
-                write!(f, "{}", c)?;
-            }
-            writeln!(f)?;
-        }
+#[cfg(test)]
+mod tests {
+    use crate::direction::Direction;
 
-        Ok(())
+    use super::*;
+
+    #[test]
+    fn test_map_new() {
+        let instructions = vec![
+            Instruction {
+                direction: Direction::new('L').unwrap(),
+                length: 6,
+                color: 0,
+            },
+            Instruction {
+                direction: Direction::new('D').unwrap(),
+                length: 8,
+                color: 0,
+            },
+            Instruction {
+                direction: Direction::new('R').unwrap(),
+                length: 6,
+                color: 0,
+            },
+            Instruction {
+                direction: Direction::new('U').unwrap(),
+                length: 8,
+                color: 0,
+            },
+        ];
+
+        let map = Map::new(instructions);
+
+        let expected = vec![
+            Point { x: -6, y: 0 },
+            Point { x: 0, y: 0 },
+            Point { x: -6, y: 8 },
+            Point { x: 0, y: 8 },
+        ];
+
+        assert_eq!(expected, map.points.into_iter().collect::<Vec<Point>>());
     }
 }

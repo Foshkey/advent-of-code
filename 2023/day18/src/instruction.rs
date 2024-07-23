@@ -8,8 +8,6 @@ pub struct Instruction {
     pub color: u32,
 }
 
-pub type Instructions = Vec<Instruction>;
-
 impl Instruction {
     pub fn new(input: &str) -> Result<Self> {
         let parts: Vec<&str> = input.trim().splitn(3, ' ').collect();
@@ -40,8 +38,30 @@ impl Instruction {
         })
     }
 
-    pub fn parse_set(input: &str) -> Result<Instructions> {
+    pub fn from_color(input: &str) -> Result<Self> {
+        let instruction = Instruction::new(input)?;
+
+        let new_direction = match instruction.color % 16 {
+            0 => Direction { x: 1, y: 0 },
+            1 => Direction { x: 0, y: 1 },
+            2 => Direction { x: -1, y: 0 },
+            3 => Direction { x: 0, y: -1 },
+            _ => bail!("Invalid color: {}", instruction.color),
+        };
+
+        Ok(Instruction {
+            direction: new_direction,
+            length: instruction.color / 16,
+            color: instruction.color,
+        })
+    }
+
+    pub fn parse_set(input: &str) -> Result<Vec<Instruction>> {
         input.lines().map(Instruction::new).collect()
+    }
+
+    pub fn parse_set_from_color(input: &str) -> Result<Vec<Instruction>> {
+        input.lines().map(Instruction::from_color).collect()
     }
 }
 
@@ -57,5 +77,14 @@ mod tests {
         assert_eq!(instruction.direction, Direction { x: 1, y: 0 });
         assert_eq!(instruction.length, 10);
         assert_eq!(instruction.color, 0xFF0000);
+    }
+
+    #[test]
+    fn test_instruction_from_color_valid_input() {
+        let input = "L 10 (#70c710)";
+        let instruction = Instruction::from_color(input).unwrap();
+
+        assert_eq!(instruction.direction, Direction { x: 1, y: 0 });
+        assert_eq!(instruction.length, 461937);
     }
 }

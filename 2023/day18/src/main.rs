@@ -1,6 +1,3 @@
-use std::io::Write;
-use std::{env, fs::File};
-
 use anyhow::Result;
 
 use instruction::Instruction;
@@ -9,34 +6,25 @@ use map::Map;
 mod direction;
 mod instruction;
 mod map;
+mod point;
+mod rectangle;
 
-fn part_1(input: &str) -> Result<u32> {
+fn part_1(input: &str) -> Result<u64> {
     let instructions = Instruction::parse_set(input)?;
-    let mut map = Map::new(instructions)?;
-    map.fill()?;
-
-    // let mut file = File::create("output_filled.txt")?;
-    // write!(file, "{}", map)?;
-
-    Ok(map.count())
+    let map = Map::new(instructions);
+    Ok(map.count_filled())
 }
 
-fn part_2(input: &str) -> Result<u32> {
-    let instructions = Instruction::parse_set(input)?;
-    Ok(0)
+fn part_2(input: &str) -> Result<u64> {
+    let instructions = Instruction::parse_set_from_color(input)?;
+    let map = Map::new(instructions);
+    Ok(map.count_filled())
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
     let input = include_str!("input.txt");
-
-    let result = match args.get(1).map(|s| s.as_str()) {
-        Some("1") => part_1(input),
-        Some("2") => part_2(input),
-        _ => part_1(input),
-    };
-
-    println!("{:?}", result);
+    println!("Part 1: {:?}", part_1(input));
+    println!("Part 2: {:?}", part_2(input));
 }
 
 #[cfg(test)]
@@ -48,5 +36,12 @@ mod tests {
         let input = include_str!("example.txt");
         let result = part_1(input);
         assert_eq!(62, result.unwrap());
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = include_str!("example.txt");
+        let result = part_2(input);
+        assert_eq!(952408144115, result.unwrap());
     }
 }
