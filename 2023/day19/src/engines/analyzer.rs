@@ -1,8 +1,4 @@
-use std::{
-    cmp::{max, min, Ordering},
-    collections::HashMap,
-    ops::Range,
-};
+use std::{cmp::Ordering, collections::HashMap, ops::Range};
 
 use anyhow::{anyhow, Result};
 
@@ -17,49 +13,22 @@ const MAX_RANGE: Range<u16> = 1..(MAX_RATING + 1);
 
 pub fn count_distinct_combinations(sequence: &Sequence) -> Result<u64> {
     let paths = get_accepted_paths(sequence)?;
-    let ranges_map = get_ranges(&paths);
 
-    let mut count = 1;
-    for (_, ranges) in ranges_map {
-        count *= ranges.iter().map(|r| r.len() as u64).sum::<u64>()
+    let mut count = 0;
+    for path in paths {
+        let Some(ranges) = get_ranges(&path) else {
+            continue;
+        };
+
+        count += ranges
+            .iter()
+            .fold(1u64, |acc, (_, range)| acc * range.len() as u64);
     }
 
     Ok(count)
 }
 
-fn get_ranges(paths: &Vec<Vec<Step>>) -> HashMap<char, Vec<Range<u16>>> {
-    let mut ranges = HashMap::new();
-
-    for path in paths {
-        let Some(range_map) = get_range(path) else {
-            continue;
-        };
-
-        for (c, range) in range_map {
-            let Some(ranges_map) = ranges.get_mut(&c) else {
-                ranges.insert(c, vec![range]);
-                continue;
-            };
-
-            let mut found_range = false;
-            for existing_range in ranges_map {
-                if ranges_overlap(&range, existing_range) {
-                    *existing_range = merge_ranges(&range, existing_range);
-                    found_range = true;
-                    break;
-                }
-            }
-
-            if !found_range {
-                ranges.get_mut(&c).unwrap().push(range);
-            }
-        }
-    }
-
-    ranges
-}
-
-fn get_range(path: &Vec<Step>) -> Option<HashMap<char, Range<u16>>> {
+fn get_ranges(path: &Vec<Step>) -> Option<HashMap<char, Range<u16>>> {
     let mut range_map: HashMap<char, Range<u16>> = vec![
         ('x', MAX_RANGE),
         ('m', MAX_RANGE),
@@ -91,16 +60,6 @@ fn get_range(path: &Vec<Step>) -> Option<HashMap<char, Range<u16>>> {
     }
 
     Some(range_map)
-}
-
-fn ranges_overlap(range1: &Range<u16>, range2: &Range<u16>) -> bool {
-    range1.start <= range2.end && range2.start <= range1.end
-}
-
-fn merge_ranges(range1: &Range<u16>, range2: &Range<u16>) -> Range<u16> {
-    let start = min(range1.start, range2.start);
-    let end = max(range1.end, range2.end);
-    start..end
 }
 
 fn get_accepted_paths(sequence: &Sequence) -> Result<Vec<Vec<Step>>> {
@@ -203,23 +162,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_ranges() {
-        let paths: Vec<Vec<Step>> = [
-            vec!["x<4:", "m>3995:"],
-            vec!["x<30:", "x>10:", "m>3990:"],
-            vec!["x<35:", "x>10:", "m>3991:"],
-        ]
-        .iter()
-        .map(|p| p.iter().map(|s| s.parse().unwrap()).collect())
-        .collect();
-
-        let result = get_ranges(&paths);
-
-        assert_eq!(vec![1..4, 11..35], result[&'x']);
-        assert_eq!(vec![3991..4001], result[&'m']);
-    }
-
-    #[test]
     fn test_get_accepted_paths() {
         let sequence: Sequence = "in{x<232:abc,m>400:A,R}\nabc{a>1200:R,A}".parse().unwrap();
         let expected: Vec<Vec<Step>> = [vec!["x<232:", "a<1201:"], vec!["x>231:", "m>400:"]]
@@ -243,67 +185,5 @@ mod tests {
         let sequence: Sequence = include_str!("../example.txt").parse().unwrap();
         let result = get_accepted_paths(&sequence);
         assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_ranges_overlap() {
-        // Test overlapping ranges
-        let range1 = 1..5;
-        let range2 = 3..7;
-        assert!(ranges_overlap(&range1, &range2));
-
-        // Test non-overlapping ranges
-        let range3 = 1..5;
-        let range4 = 6..10;
-        assert!(!ranges_overlap(&range3, &range4));
-
-        // Test adjacent ranges (we want this to be true)
-        let range5 = 1..5;
-        let range6 = 5..10;
-        assert!(ranges_overlap(&range5, &range6));
-
-        // Test ranges fully overlapping
-        let range7 = 1..10;
-        let range8 = 5..7;
-        assert!(ranges_overlap(&range7, &range8));
-        let range7 = 5..7;
-        let range8 = 1..10;
-        assert!(ranges_overlap(&range7, &range8));
-
-        // Test overlapping ranges with equal start and end
-        let range9 = 1..5;
-        let range10 = 4..10;
-        assert!(ranges_overlap(&range9, &range10));
-    }
-
-    #[test]
-    fn test_merge_ranges() {
-        // Test merging overlapping ranges
-        let range1 = 1..5;
-        let range2 = 3..7;
-        let expected1 = 1..7;
-        let result1 = merge_ranges(&range1, &range2);
-        assert_eq!(expected1, result1);
-
-        // Test merging adjacent ranges
-        let range3 = 1..5;
-        let range4 = 5..10;
-        let expected2 = 1..10;
-        let result2 = merge_ranges(&range3, &range4);
-        assert_eq!(expected2, result2);
-
-        // Test merging ranges with equal start and end
-        let range5 = 1..5;
-        let range6 = 4..10;
-        let expected3 = 1..10;
-        let result3 = merge_ranges(&range5, &range6);
-        assert_eq!(expected3, result3);
-
-        // Test merging ranges fully included
-        let range7 = 1..10;
-        let range8 = 4..6;
-        let expected4 = 1..10;
-        let result4 = merge_ranges(&range7, &range8);
-        assert_eq!(expected4, result4);
     }
 }
