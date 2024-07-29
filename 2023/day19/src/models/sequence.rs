@@ -2,9 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use anyhow::{bail, Error, Result};
 
-use super::{part::Part, step::Step};
-
-pub type Workflow = Vec<Step>;
+use super::{part::Part, workflow::Workflow};
 
 #[derive(Debug, PartialEq)]
 pub struct Sequence {
@@ -32,11 +30,7 @@ impl FromStr for Sequence {
             }
 
             let name = workflow_split[0].trim();
-            let steps: Workflow = workflow_split[1]
-                .trim_matches(|c| c == '}')
-                .split(',')
-                .map(|s| s.parse())
-                .collect::<Result<Vec<Step>>>()?;
+            let steps: Workflow = workflow_split[1].parse()?;
 
             workflows.insert(name.to_string(), steps);
         }
@@ -52,6 +46,8 @@ impl FromStr for Sequence {
 
 #[cfg(test)]
 mod tests {
+    use crate::models::step::Step;
+
     use super::super::step::StepResult;
     use super::*;
     use std::cmp::Ordering;
@@ -63,7 +59,7 @@ mod tests {
 
         assert_eq!(11, sequence.workflows.len());
         assert_eq!(
-            &vec![
+            &Workflow::new(vec![
                 Step::Compare(
                     's',
                     Ordering::Greater,
@@ -77,7 +73,7 @@ mod tests {
                     StepResult::Continue("hdj".to_string())
                 ),
                 Step::Final(StepResult::Reject)
-            ],
+            ]),
             sequence.workflows.get("qqz").unwrap()
         );
 

@@ -3,12 +3,12 @@ use std::{collections::HashMap, str::FromStr};
 
 #[derive(Debug, PartialEq)]
 pub struct Part {
-    pub ratings: HashMap<char, u32>,
+    pub ratings: HashMap<char, u16>,
 }
 
 impl Part {
     pub fn total_rating(&self) -> u32 {
-        self.ratings.values().sum()
+        self.ratings.values().map(|&n| n as u32).sum()
     }
 }
 
@@ -34,7 +34,7 @@ impl FromStr for Part {
             }
 
             let key = key_value[0].trim().chars().next().unwrap();
-            let value = key_value[1].trim().parse::<u32>()?;
+            let value = key_value[1].trim().parse::<u16>()?;
 
             ratings.insert(key, value);
         }

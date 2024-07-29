@@ -2,8 +2,9 @@ use anyhow::{anyhow, bail, Result};
 
 use crate::models::{
     part::Part,
-    sequence::{Sequence, Workflow},
+    sequence::Sequence,
     step::{Step, StepResult},
+    workflow::Workflow,
 };
 
 pub fn run(sequence: &Sequence) -> Result<u64> {
@@ -46,8 +47,8 @@ fn run_part_through_workflow(part: &Part, workflow: &Workflow) -> Result<StepRes
     for step in workflow {
         match step {
             Step::Compare(variable, operator, value, result) => {
-                let part_value = part.ratings.get(variable).unwrap_or(&0);
-                if &part_value.cmp(value) == operator {
+                let part_value = *part.ratings.get(variable).unwrap_or(&0);
+                if part_value.cmp(value) == *operator {
                     return Ok(result.clone());
                 }
             }
