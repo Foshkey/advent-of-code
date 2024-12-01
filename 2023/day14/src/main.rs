@@ -90,13 +90,17 @@ impl FromStr for Platform {
     }
 }
 
-impl ToString for Platform {
-    fn to_string(&self) -> String {
-        self.grid
-            .iter()
-            .map(|row| row.iter().map(|&t| char::from(t)).collect())
-            .collect::<Vec<String>>()
-            .join("\n")
+impl Display for Platform {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.grid
+                .iter()
+                .map(|row| row.iter().map(|&t| char::from(t)).collect())
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
     }
 }
 
@@ -225,9 +229,7 @@ impl Platform {
         let new_row = usize::try_from(current.row as isize + dr).ok()?;
         let new_col = usize::try_from(current.col as isize + dc).ok()?;
 
-        let Some(tile) = self.grid.get(new_row)?.get(new_col) else {
-            return None;
-        };
+        let tile = self.grid.get(new_row)?.get(new_col)?;
 
         Some((
             *tile,
