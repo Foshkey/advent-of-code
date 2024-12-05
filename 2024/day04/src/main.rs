@@ -7,42 +7,23 @@ struct Cell {
 }
 
 struct Puzzle<'a> {
-    width: usize,
-    height: usize,
     lines: Vec<&'a str>,
 }
 
 impl<'a> From<&'a str> for Puzzle<'a> {
     fn from(value: &'a str) -> Self {
         let lines: Vec<&str> = value.lines().collect();
-
-        Puzzle {
-            width: lines[0].len(),
-            height: lines.len(),
-            lines,
-        }
+        Puzzle { lines }
     }
 }
 
 impl<'a> Puzzle<'a> {
     fn get_next(&self, cell: &Cell, d_row: i32, d_col: i32) -> Option<Cell> {
-        let row = cell.row as i32 + d_row;
-        if row < 0 || row as usize >= self.height {
-            return None;
-        }
-        let row = row as usize;
+        let row = (cell.row as i32 + d_row) as usize;
+        let col = (cell.col as i32 + d_col) as usize;
+        let value = self.lines.get(row).and_then(|line| line.chars().nth(col))?;
 
-        let col = cell.col as i32 + d_col;
-        if col < 0 || col as usize >= self.width {
-            return None;
-        }
-        let col = col as usize;
-
-        Some(Cell {
-            row,
-            col,
-            value: self.lines[row].chars().nth(col).unwrap(),
-        })
+        Some(Cell { row, col, value })
     }
 
     fn is_xmas(&self, cell: &Cell, d_row: i32, d_col: i32) -> bool {
