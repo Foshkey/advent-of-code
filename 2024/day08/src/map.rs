@@ -39,19 +39,57 @@ impl Map {
         antinodes
     }
 
+    pub fn get_antinodes_with_resonance(&self) -> HashSet<Coord> {
+        let mut antinodes = HashSet::new();
+
+        for (_, positions) in self.antennas.iter() {
+            for antenna in positions {
+                for other in positions {
+                    for antinode in self.get_antinode_line(antenna, other) {
+                        antinodes.insert(antinode);
+                    }
+                }
+            }
+        }
+
+        antinodes
+    }
+
     fn get_antinode(&self, a: &Coord, b: &Coord) -> Option<Coord> {
         if a == b {
             return None;
         }
 
+        let d_row = (b.row as isize - a.row as isize) * 2;
+        let d_col = (b.col as isize - a.col as isize) * 2;
+        self.check_add(a, d_row, d_col)
+    }
+
+    fn get_antinode_line(&self, a: &Coord, b: &Coord) -> Vec<Coord> {
+        if a == b {
+            return vec![];
+        }
+
         let d_row = b.row as isize - a.row as isize;
-        let row = a.row.checked_add_signed(d_row * 2)?;
+        let d_col = b.col as isize - a.col as isize;
+        let mut mult = 1;
+        let mut antinodes = Vec::new();
+
+        while let Some(antinode) = self.check_add(a, d_row * mult, d_col * mult) {
+            mult += 1;
+            antinodes.push(antinode)
+        }
+
+        antinodes
+    }
+
+    fn check_add(&self, position: &Coord, d_row: isize, d_col: isize) -> Option<Coord> {
+        let row = position.row.checked_add_signed(d_row)?;
         if row >= self.height {
             return None;
         }
 
-        let d_col = b.col as isize - a.col as isize;
-        let col = a.col.checked_add_signed(d_col * 2)?;
+        let col = position.col.checked_add_signed(d_col)?;
         if col >= self.width {
             return None;
         }

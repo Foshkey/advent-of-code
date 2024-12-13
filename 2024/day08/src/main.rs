@@ -8,7 +8,8 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
-    input.len()
+    let map = map::Map::from(input);
+    map.get_antinodes_with_resonance().len()
 }
 
 fn main() {
@@ -31,6 +32,6 @@ mod tests {
     #[test]
     fn test_example_part_2() {
         let result = part_2(EXAMPLE);
-        assert_eq!(result, 2);
+        assert_eq!(result, 34);
     }
 }
