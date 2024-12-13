@@ -1,14 +1,15 @@
 mod map;
+mod tracker;
 
 const INPUT: &str = include_str!("input.txt");
 
 fn part_1(input: &str) -> usize {
-    let map = map::Map::from(input);
-    map.trace_guard_path().unwrap()
+    let mut map = map::Map::from(input);
+    map.get_guard_path_count()
 }
 
 fn part_2(input: &str) -> usize {
-    let map = map::Map::from(input);
+    let mut map = map::Map::from(input);
     let mut num_loops = 0;
 
     for row in 0..map.grid.len() {
@@ -17,11 +18,12 @@ fn part_2(input: &str) -> usize {
                 continue;
             }
 
-            let mut new_map = map.clone();
-            new_map.grid[row][col] = map::Tile::Obstacle;
-            if matches!(new_map.trace_guard_path(), Err(map::MapError::LoopingPath)) {
+            map.grid[row][col] = map::Tile::Obstacle;
+            if map.is_guard_path_loop() {
                 num_loops += 1;
             }
+            map.grid[row][col] = map::Tile::Empty;
+            map.reset();
         }
     }
 

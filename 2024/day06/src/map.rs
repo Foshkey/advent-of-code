@@ -1,63 +1,77 @@
-use std::collections::HashSet;
+use crate::tracker;
 
-#[derive(Debug)]
-pub enum MapError {
-    LoopingPath,
-}
-
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub enum Tile {
     Empty,
     Obstacle,
-    GuardPath(HashSet<(isize, isize)>),
+    Path,
 }
 
-#[derive(Clone)]
 pub struct Map {
     pub grid: Vec<Vec<Tile>>,
     pub guard_coord: (usize, usize),
     guard_direction: (isize, isize),
+    original_guard_coord: (usize, usize),
+    tracker: tracker::Tracker,
 }
 
 impl Map {
-    pub fn trace_guard_path(&self) -> Result<usize, MapError> {
-        let mut map = self.clone();
-        map.trace_guard_path_mut()
+    pub fn reset(&mut self) {
+        self.guard_coord = self.original_guard_coord;
+        self.guard_direction = (-1, 0);
+        self.tracker = tracker::Tracker::new()
     }
 
-    fn trace_guard_path_mut(&mut self) -> Result<usize, MapError> {
-        while let Some((next_tile, next_coord)) = self.get_next(self.guard_direction) {
+    pub fn get_guard_path_count(&mut self) -> usize {
+        while self.move_to_next_obstacle(true) {
+            self.turn_guard_right();
+        }
+
+        self.grid
+            .iter()
+            .map(|row| row.iter().filter(|&tile| *tile == Tile::Path).count())
+            .sum()
+    }
+
+    pub fn is_guard_path_loop(&mut self) -> bool {
+        while self.move_to_next_obstacle(false) {
+            self.turn_guard_right();
+
+            if !self.tracker.mark(self.guard_coord, self.guard_direction) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn move_to_next_obstacle(&mut self, mark_path: bool) -> bool {
+        let mut is_obstacle = false;
+
+        loop {
+            if mark_path {
+                let (row, col) = self.guard_coord;
+                self.grid[row][col] = Tile::Path;
+            }
+
+            let Some((next_tile, next_coord)) = self.get_next() else {
+                break;
+            };
+
             if *next_tile == Tile::Obstacle {
-                self.turn_guard_right();
-                continue;
+                is_obstacle = true;
+                break;
             }
 
-            if let Tile::GuardPath(directions) = next_tile {
-                if directions.contains(&self.guard_direction) {
-                    return Err(MapError::LoopingPath);
-                }
-            }
-
-            self.mark_guard_position();
             self.guard_coord = next_coord;
         }
 
-        self.mark_guard_position();
-        let num_marked_tiles = self
-            .grid
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .filter(|tile| matches!(tile, Tile::GuardPath(..)))
-                    .count()
-            })
-            .sum();
-        Ok(num_marked_tiles)
+        is_obstacle
     }
 
-    fn get_next(&self, direction: (isize, isize)) -> Option<(&Tile, (usize, usize))> {
+    fn get_next(&self) -> Option<(&Tile, (usize, usize))> {
         let (row, col) = self.guard_coord;
-        let (d_row, d_col) = direction;
+        let (d_row, d_col) = self.guard_direction;
         let new_row = row.checked_add_signed(d_row)?;
         let new_col = col.checked_add_signed(d_col)?;
         let tile = self.grid.get(new_row)?.get(new_col)?;
@@ -73,26 +87,6 @@ impl Map {
             (0, -1) => (-1, 0),
             (d_row, d_col) => (d_row, d_col),
         };
-    }
-
-    fn mark_guard_position(&mut self) {
-        let (row, col) = self.guard_coord;
-        let Some(row) = self.grid.get_mut(row) else {
-            return;
-        };
-        let Some(tile) = row.get_mut(col) else {
-            return;
-        };
-        let direction = self.guard_direction;
-
-        match tile {
-            Tile::GuardPath(directions) => {
-                directions.insert(direction);
-            }
-            _ => {
-                *tile = Tile::GuardPath(HashSet::from([direction]));
-            }
-        }
     }
 }
 
@@ -122,6 +116,8 @@ impl From<&str> for Map {
             grid,
             guard_coord,
             guard_direction: (-1, 0),
+            original_guard_coord: guard_coord,
+            tracker: tracker::Tracker::new(),
         }
     }
 }
