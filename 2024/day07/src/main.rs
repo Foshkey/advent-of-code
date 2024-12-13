@@ -5,14 +5,19 @@ const INPUT: &str = include_str!("input.txt");
 fn part_1(input: &str) -> u128 {
     input
         .lines()
-        .filter_map(|line| line.parse::<equation::Equation>().ok())
+        .filter_map(|line| equation::Equation::init(line, false))
         .filter(|eq| eq.is_possible())
         .map(|eq| eq.result)
         .sum()
 }
 
-fn part_2(input: &str) -> usize {
-    input.len()
+fn part_2(input: &str) -> u128 {
+    input
+        .lines()
+        .filter_map(|line| equation::Equation::init(line, true))
+        .filter(|eq| eq.is_possible())
+        .map(|eq| eq.result)
+        .sum()
 }
 
 fn main() {

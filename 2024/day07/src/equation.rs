@@ -1,16 +1,29 @@
-use std::{slice::Iter, str::FromStr};
-
-pub enum EquationError {
-    NoColon,
-    IntParseError,
-}
+use std::slice::Iter;
 
 pub struct Equation {
     pub result: u128,
     numbers: Vec<u128>,
+    with_concat: bool,
 }
 
 impl Equation {
+    pub fn init(s: &str, with_concat: bool) -> Option<Self> {
+        let (result, numbers) = s.split_once(":")?;
+
+        let result = parse_u128(result)?;
+        let numbers = numbers
+            .trim()
+            .split(' ')
+            .map(parse_u128)
+            .collect::<Option<Vec<u128>>>()?;
+
+        Some(Equation {
+            result,
+            numbers,
+            with_concat,
+        })
+    }
+
     pub fn is_possible(&self) -> bool {
         self.check_possible(0, self.numbers.iter())
     }
@@ -20,6 +33,10 @@ impl Equation {
             return self.result == sum;
         };
 
+        if self.with_concat && self.check_possible(concat(&sum, next), numbers.clone()) {
+            return true;
+        }
+
         if self.check_possible(sum + next, numbers.clone()) {
             return true;
         }
@@ -28,25 +45,10 @@ impl Equation {
     }
 }
 
-impl FromStr for Equation {
-    type Err = EquationError;
+fn parse_u128(s: &str) -> Option<u128> {
+    s.parse().ok()
+}
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let Some((result, numbers)) = s.split_once(":") else {
-            return Err(EquationError::NoColon);
-        };
-
-        fn parse_u128(s: &str) -> Result<u128, EquationError> {
-            s.parse().map_err(|_| EquationError::IntParseError)
-        }
-
-        let result = parse_u128(result)?;
-        let numbers = numbers
-            .trim()
-            .split(' ')
-            .map(parse_u128)
-            .collect::<Result<Vec<u128>, EquationError>>()?;
-
-        Ok(Equation { result, numbers })
-    }
+fn concat(a: &u128, b: &u128) -> u128 {
+    (a.to_string() + &b.to_string()).parse().unwrap()
 }
