@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 pub struct Drive {
     blocks: Vec<Block>,
+    next_id: usize,
 }
 
 impl Drive {
@@ -18,7 +19,7 @@ impl Drive {
             };
 
             // Take the first empty block
-            let Some((index, empty_block)) = self.take_empty_block() else {
+            let Some((index, empty_block)) = self.take_empty_block(1, self.blocks.len()) else {
                 // If no empty block then put the id block back and break out.
                 self.blocks.push(block);
                 break;
@@ -56,6 +57,46 @@ impl Drive {
         }
     }
 
+    pub fn compress_whole(&mut self) {
+        let mut id = self.next_id;
+
+        while id > 0 {
+            id -= 1;
+
+            let Some((mut block_index, block)) = self.find_block(id) else {
+                break;
+            };
+
+            let Some((empty_index, empty_block)) = self.take_empty_block(block.len, block_index)
+            else {
+                continue;
+            };
+
+            // Subtract 1 from the block index because we just took an empty block
+            block_index -= 1;
+
+            // Remove the block and replace it with empty space
+            let block = self.blocks.remove(block_index);
+            self.blocks.insert(
+                block_index,
+                Block {
+                    id: None,
+                    len: block.len,
+                },
+            );
+
+            // Insert new empty block
+            let new_empty_block = Block {
+                id: None,
+                len: empty_block.len - block.len,
+            };
+            self.blocks.insert(empty_index, new_empty_block);
+
+            // And finally insert the block
+            self.blocks.insert(empty_index, block);
+        }
+    }
+
     pub fn get_checksum(&self) -> u128 {
         let mut position = 0;
         let mut sum = 0;
@@ -72,22 +113,30 @@ impl Drive {
         sum
     }
 
-    fn take_empty_block(&mut self) -> Option<(usize, Block)> {
-        let (index, _) = self
-            .blocks
-            .iter()
-            .enumerate()
-            .find(|(_, block)| block.id.is_none())?;
+    fn take_empty_block(&mut self, min_len: usize, max_index: usize) -> Option<(usize, Block)> {
+        let (index, _) = self.blocks.iter().enumerate().find(|(index, block)| {
+            block.id.is_none() && block.len >= min_len && *index < max_index
+        })?;
 
         let block = self.blocks.remove(index);
 
         Some((index, block))
     }
+
+    fn find_block(&self, id: usize) -> Option<(usize, &Block)> {
+        for (index, block) in self.blocks.iter().enumerate().rev() {
+            if block.id == Some(id) {
+                return Some((index, block));
+            }
+        }
+
+        None
+    }
 }
 
 impl From<&str> for Drive {
     fn from(s: &str) -> Self {
-        let mut drive = Drive { blocks: Vec::new() };
+        let mut blocks = Vec::new();
         let mut id = 0;
         let mut is_file = true;
 
@@ -101,7 +150,7 @@ impl From<&str> for Drive {
                 None
             };
 
-            drive.blocks.push(Block {
+            blocks.push(Block {
                 id: block_id,
                 len: n,
             });
@@ -109,7 +158,10 @@ impl From<&str> for Drive {
             is_file = !is_file;
         }
 
-        drive
+        Drive {
+            blocks,
+            next_id: id,
+        }
     }
 }
 

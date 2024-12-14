@@ -8,8 +8,10 @@ fn part_1(input: &str) -> u128 {
     drive.get_checksum()
 }
 
-fn part_2(input: &str) -> usize {
-    input.len()
+fn part_2(input: &str) -> u128 {
+    let mut drive = drive::Drive::from(input);
+    drive.compress_whole();
+    drive.get_checksum()
 }
 
 fn main() {
@@ -32,6 +34,6 @@ mod tests {
     #[test]
     fn test_example_part_2() {
         let result = part_2(EXAMPLE);
-        assert_eq!(result, 2);
+        assert_eq!(result, 2858);
     }
 }
