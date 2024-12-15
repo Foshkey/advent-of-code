@@ -7,15 +7,27 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn map_trails(&mut self) {
+    pub fn get_trailhead_scores(&self) -> usize {
+        let mut map = Map {
+            grid: self.grid.clone(),
+            trails: self.trails.clone(),
+        };
+        map.map_trails();
+        map.trails.values().map(|peaks| peaks.len()).sum()
+    }
+
+    pub fn count_possible_trails(&self) -> usize {
+        self.trails
+            .keys()
+            .map(|&trailhead| self.count(trailhead, 0))
+            .sum()
+    }
+
+    fn map_trails(&mut self) {
         let trailheads: Vec<_> = self.trails.keys().cloned().collect();
         for trailhead in trailheads {
             self.map_trail(trailhead, trailhead, 0);
         }
-    }
-
-    pub fn get_trailhead_scores(&self) -> usize {
-        self.trails.values().map(|peaks| peaks.len()).sum()
     }
 
     fn map_trail(&mut self, trailhead: Coord, position: Coord, height: u8) {
@@ -31,6 +43,23 @@ impl Map {
                 self.map_trail(trailhead, neighbor_position, neighbor_height);
             }
         }
+    }
+
+    fn count(&self, position: Coord, height: u8) -> usize {
+        if height == 9 {
+            return 1;
+        }
+
+        self.get_neighbors(position)
+            .iter()
+            .map(|&(neighbor_position, neighbor_value)| {
+                if neighbor_value == height + 1 {
+                    self.count(neighbor_position, neighbor_value)
+                } else {
+                    0
+                }
+            })
+            .sum()
     }
 
     fn get_neighbors(&self, position: Coord) -> Vec<(Coord, u8)> {
@@ -91,8 +120,7 @@ mod tests {
 7.....7
 8.....8
 9.....9";
-        let mut map: Map = input.into();
-        map.map_trails();
+        let map: Map = input.into();
         assert_eq!(map.get_trailhead_scores(), 2);
     }
 
@@ -106,8 +134,7 @@ mod tests {
 765.987
 876....
 987....";
-        let mut map: Map = input.into();
-        map.map_trails();
+        let map: Map = input.into();
         assert_eq!(map.get_trailhead_scores(), 4);
     }
 
@@ -121,8 +148,7 @@ mod tests {
 ...8..3
 ...9..2
 .....01";
-        let mut map: Map = input.into();
-        map.map_trails();
+        let map: Map = input.into();
         assert_eq!(map.get_trailhead_scores(), 3);
     }
 }

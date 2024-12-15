@@ -3,13 +3,13 @@ mod map;
 const INPUT: &str = include_str!("input.txt");
 
 fn part_1(input: &str) -> usize {
-    let mut map: map::Map = input.into();
-    map.map_trails();
+    let map: map::Map = input.into();
     map.get_trailhead_scores()
 }
 
 fn part_2(input: &str) -> usize {
-    input.len()
+    let map: map::Map = input.into();
+    map.count_possible_trails()
 }
 
 fn main() {
@@ -32,6 +32,6 @@ mod tests {
     #[test]
     fn test_example_part_2() {
         let result = part_2(EXAMPLE);
-        assert_eq!(result, 2);
+        assert_eq!(result, 81);
     }
 }
