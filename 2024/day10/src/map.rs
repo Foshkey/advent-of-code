@@ -3,50 +3,45 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug)]
 pub struct Map {
     grid: Vec<Vec<u8>>,
-    trails: HashMap<Coord, HashSet<Coord>>,
+    trailheads: Vec<Coord>,
 }
 
 impl Map {
     pub fn get_trailhead_scores(&self) -> usize {
-        let mut map = Map {
-            grid: self.grid.clone(),
-            trails: self.trails.clone(),
-        };
-        map.map_trails();
-        map.trails.values().map(|peaks| peaks.len()).sum()
+        let mut trails: Trails = HashMap::new();
+        for &trailhead in &self.trailheads {
+            trails.insert(trailhead, HashSet::new());
+        }
+        self.map_trails(&mut trails);
+        trails.values().map(|peaks| peaks.len()).sum()
     }
 
     pub fn count_possible_trails(&self) -> usize {
-        self.trails
-            .keys()
-            .map(|&trailhead| self.count(trailhead, 0))
+        self.trailheads
+            .iter()
+            .map(|&trailhead| self.map_trail(trailhead, 0, &mut None))
             .sum()
     }
 
-    fn map_trails(&mut self) {
-        let trailheads: Vec<_> = self.trails.keys().cloned().collect();
+    fn map_trails(&self, trails: &mut Trails) {
+        let trailheads: Vec<_> = trails.keys().cloned().collect();
         for trailhead in trailheads {
-            self.map_trail(trailhead, trailhead, 0);
+            self.map_trail(trailhead, 0, &mut Some((trailhead, trails)));
         }
     }
 
-    fn map_trail(&mut self, trailhead: Coord, position: Coord, height: u8) {
+    fn map_trail(
+        &self,
+        position: Coord,
+        height: u8,
+        tracking: &mut Option<(Coord, &mut Trails)>,
+    ) -> usize {
         if height == 9 {
-            self.trails
-                .get_mut(&trailhead)
-                .map(|peaks| peaks.insert(position));
-            return;
-        }
-
-        for (neighbor_position, neighbor_height) in self.get_neighbors(position) {
-            if neighbor_height == height + 1 {
-                self.map_trail(trailhead, neighbor_position, neighbor_height);
+            if let Some((trailhead, trails)) = tracking.as_mut() {
+                trails
+                    .get_mut(trailhead)
+                    .map(|peaks| peaks.insert(position));
             }
-        }
-    }
-
-    fn count(&self, position: Coord, height: u8) -> usize {
-        if height == 9 {
             return 1;
         }
 
@@ -54,7 +49,7 @@ impl Map {
             .iter()
             .map(|&(neighbor_position, neighbor_value)| {
                 if neighbor_value == height + 1 {
-                    self.count(neighbor_position, neighbor_value)
+                    self.map_trail(neighbor_position, neighbor_value, tracking)
                 } else {
                     0
                 }
@@ -79,7 +74,7 @@ impl Map {
 
 impl From<&str> for Map {
     fn from(s: &str) -> Self {
-        let mut trails = HashMap::new();
+        let mut trailheads = Vec::new();
         let grid = s
             .lines()
             .enumerate()
@@ -88,7 +83,7 @@ impl From<&str> for Map {
                     .map(|(col, c)| {
                         let n = c.to_string().parse::<u8>().unwrap_or(20);
                         if n == 0 {
-                            trails.insert(Coord { row, col }, HashSet::new());
+                            trailheads.push(Coord { row, col });
                         }
                         n
                     })
@@ -96,7 +91,7 @@ impl From<&str> for Map {
             })
             .collect();
 
-        Map { grid, trails }
+        Map { grid, trailheads }
     }
 }
 
@@ -105,6 +100,8 @@ pub struct Coord {
     row: usize,
     col: usize,
 }
+
+type Trails = HashMap<Coord, HashSet<Coord>>;
 
 #[cfg(test)]
 mod tests {
