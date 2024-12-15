@@ -24,8 +24,7 @@ impl Map {
     }
 
     fn map_trails(&self, trails: &mut Trails) {
-        let trailheads: Vec<_> = trails.keys().cloned().collect();
-        for trailhead in trailheads {
+        for &trailhead in &self.trailheads {
             self.map_trail(trailhead, 0, &mut Some((trailhead, trails)));
         }
     }
