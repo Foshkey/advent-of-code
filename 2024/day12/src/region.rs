@@ -18,7 +18,7 @@ impl Region {
         self.plots
             .iter()
             .map(|plot| {
-                let neighbors_count = self.neighbors(*plot).len();
+                let neighbors_count = self.get_neighbors(*plot).len();
                 4 - neighbors_count
             })
             .sum()
@@ -26,6 +26,61 @@ impl Region {
 
     pub fn count(&self) -> usize {
         self.plots.len()
+    }
+
+    pub fn count_sides(&self) -> usize {
+        // Number of sides should be the same as number of corners
+        let mut corners = 0;
+
+        for &plot in &self.plots {
+            let neighbors = self.get_neighbors(plot);
+            let neighbors_len = neighbors.len();
+
+            // If no neighbors, it has 4 corners, continue on
+            if neighbors_len == 0 {
+                corners += 4;
+                continue;
+            }
+
+            // If 1 neighbor, then 2 corners, continue on
+            if neighbors_len == 1 {
+                corners += 2;
+                continue;
+            }
+
+            // Check outside corners, like this example
+            // ...
+            // XX.
+            // XX.
+            if neighbors_len == 2
+                && !(neighbors[0].row() == neighbors[1].row()
+                    || neighbors[0].col() == neighbors[1].col())
+            {
+                corners += 1;
+            }
+
+            // And then finally count all the inside corners, like this example
+            // XX.
+            // XXX
+            // XXX
+            // This is a little more tricky since we have to look at diagonals
+            for (d_row, d_col) in [(-1, -1), (-1, 1), (1, -1), (1, 1)] {
+                if self.get_relative(plot, d_row, d_col).is_some() {
+                    // The diagonal is part of the region, it's not a corner
+                    continue;
+                }
+
+                // If neighbors of both the plot and the diagonal are part of the region,
+                // then it's a corner
+                if self.get_relative(plot, d_row, 0).is_some()
+                    && self.get_relative(plot, 0, d_col).is_some()
+                {
+                    corners += 1;
+                }
+            }
+        }
+
+        corners
     }
 
     pub fn touches(&self, plot: Coord) -> bool {
@@ -48,20 +103,22 @@ impl Region {
         }
     }
 
-    fn neighbors(&self, plot: Coord) -> Vec<Coord> {
+    fn get_neighbors(&self, plot: Coord) -> Vec<Coord> {
         [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            .iter()
-            .filter_map(|(d_row, d_col)| {
-                let row = plot.row().checked_add_signed(*d_row)?;
-                let col = plot.col().checked_add_signed(*d_col)?;
-                let neighbor = Coord::new(row, col);
-                if self.plots.contains(&neighbor) {
-                    Some(neighbor)
-                } else {
-                    None
-                }
-            })
+            .into_iter()
+            .filter_map(|(d_row, d_col)| self.get_relative(plot, d_row, d_col))
             .collect()
+    }
+
+    fn get_relative(&self, plot: Coord, d_row: isize, d_col: isize) -> Option<Coord> {
+        let row = plot.row().checked_add_signed(d_row)?;
+        let col = plot.col().checked_add_signed(d_col)?;
+        let relative = Coord::new(row, col);
+        if self.plots.contains(&relative) {
+            Some(relative)
+        } else {
+            None
+        }
     }
 }
 

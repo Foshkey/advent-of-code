@@ -16,6 +16,14 @@ impl Map {
             .sum()
     }
 
+    pub fn get_fence_cost_with_bulk_discount(&self) -> usize {
+        self.regions
+            .iter()
+            .flat_map(|(_, regions)| regions)
+            .map(|region| region.count_sides() * region.count())
+            .sum()
+    }
+
     fn add_plot(&mut self, key: char, plot: Coord) {
         // Get the regions for the letter, if there are none then create one and return out
         let Some(key_regions) = self.regions.get_mut(&key) else {
@@ -33,14 +41,14 @@ impl Map {
             base_region.insert(plot);
 
             // Merge other regions if they're touching as well
-            let indices_to_remove: Vec<_> = touching_regions
+            let mut indices_to_remove: Vec<_> = touching_regions
                 .map(|(index, region)| {
                     base_region.merge(region);
                     index
                 })
                 .collect();
 
-            for index in indices_to_remove {
+            while let Some(index) = indices_to_remove.pop() {
                 key_regions.remove(index);
             }
 

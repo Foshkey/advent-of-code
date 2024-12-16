@@ -10,7 +10,8 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
-    input.len()
+    let map: map::Map = input.into();
+    map.get_fence_cost_with_bulk_discount()
 }
 
 fn main() {
@@ -24,6 +25,13 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_basic_example() {
+        let example = "AAAAA";
+        assert_eq!(part_1(example), 12 * 5);
+        assert_eq!(part_2(example), 4 * 5);
+    }
+
+    #[test]
     fn test_small_example() {
         let example = "\
 AAAA
@@ -31,7 +39,7 @@ BBCD
 BBCC
 EEEC";
         assert_eq!(part_1(example), 140);
-        //assert_eq!(part_2(example), 1206);
+        assert_eq!(part_2(example), 80);
     }
 
     #[test]
@@ -43,7 +51,30 @@ OOOOO
 OXOXO
 OOOOO";
         assert_eq!(part_1(example), 772);
-        //assert_eq!(part_2(example), 1206);
+        assert_eq!(part_2(example), 436);
+    }
+
+    #[test]
+    fn test_e_example() {
+        let example = "\
+EEEEE
+EXXXX
+EEEEE
+EXXXX
+EEEEE";
+        assert_eq!(part_2(example), 236);
+    }
+
+    #[test]
+    fn test_ab_example() {
+        let example = "\
+AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA";
+        assert_eq!(part_2(example), 368);
     }
 
     #[test]
@@ -60,6 +91,6 @@ MIIIIIJJEE
 MIIISIJEEE
 MMMISSJEEE";
         assert_eq!(part_1(example), 1930);
-        //assert_eq!(part_2(example), 1206);
+        assert_eq!(part_2(example), 1206);
     }
 }
