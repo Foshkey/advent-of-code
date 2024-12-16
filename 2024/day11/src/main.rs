@@ -2,7 +2,7 @@ mod stone_line;
 
 const INPUT: &str = include_str!("input.txt");
 
-fn part_1(input: &str) -> usize {
+fn part_1(input: &str) -> u128 {
     let mut stone_line: stone_line::StoneLine = input.into();
     for _ in 0..25 {
         stone_line.blink();
@@ -10,7 +10,7 @@ fn part_1(input: &str) -> usize {
     stone_line.len()
 }
 
-fn part_2(input: &str) -> usize {
+fn part_2(input: &str) -> u128 {
     let mut stone_line: stone_line::StoneLine = input.into();
     for _ in 0..75 {
         stone_line.blink();
