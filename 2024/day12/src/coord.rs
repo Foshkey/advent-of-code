@@ -13,6 +13,14 @@ impl Coord {
         (self.row == plot.row && self.col.abs_diff(plot.col) == 1)
             || (self.col == plot.col && self.row.abs_diff(plot.row) == 1)
     }
+
+    pub fn row(&self) -> usize {
+        self.row
+    }
+
+    pub fn col(&self) -> usize {
+        self.col
+    }
 }
 
 #[cfg(test)]

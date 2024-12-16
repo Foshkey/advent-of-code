@@ -8,8 +8,12 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn regions(&self) -> Vec<&Region> {
-        self.regions.values().flatten().collect()
+    pub fn get_fence_cost(&self) -> usize {
+        self.regions
+            .iter()
+            .flat_map(|(_, regions)| regions)
+            .map(|region| region.perimeter_len() * region.count())
+            .sum()
     }
 
     fn add_plot(&mut self, key: char, plot: Coord) {
@@ -20,11 +24,27 @@ impl Map {
         };
 
         // See if any of the regions touches this plot, if so then add it and return out
-        for region in key_regions.iter_mut() {
-            if region.touches(plot) {
-                region.insert(plot);
-                return;
+        let mut touching_regions = key_regions
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, region)| region.touches(plot));
+
+        if let Some((_, base_region)) = touching_regions.next() {
+            base_region.insert(plot);
+
+            // Merge other regions if they're touching as well
+            let indices_to_remove: Vec<_> = touching_regions
+                .map(|(index, region)| {
+                    base_region.merge(region);
+                    index
+                })
+                .collect();
+
+            for index in indices_to_remove {
+                key_regions.remove(index);
             }
+
+            return;
         }
 
         // If we're at this point then create a new region with this plot
