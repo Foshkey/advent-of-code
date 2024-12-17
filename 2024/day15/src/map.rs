@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
 
+use crate::tile::Tile;
+
 #[derive(Debug)]
 pub struct Map {
     robot_position: (usize, usize),
@@ -7,48 +9,44 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn move_robot(&mut self, d_row: isize, d_col: isize) {
-        let mut valid_move = false;
-        let mut has_box = false;
-        let (mut row, mut col) = self.robot_position;
+    pub fn move_robot(&mut self, delta: (isize, isize)) {
+        if !self.has_room(self.robot_position, delta) {
+            return;
+        }
 
+        let mut new_position = add(self.robot_position, delta);
+        self.robot_position = new_position;
+
+        let mut tile = Tile::Empty;
         loop {
-            let Some(new_row) = row.checked_add_signed(d_row) else {
-                break;
-            };
-            let Some(new_col) = col.checked_add_signed(d_col) else {
-                break;
-            };
-
-            let next_tile = self.grid[new_row][new_col];
-            if next_tile == Tile::Obstacle {
+            tile = self.replace_tile(new_position, tile);
+            if tile == Tile::Empty {
                 break;
             }
+            new_position = add(new_position, delta);
+        }
+    }
 
-            row = new_row;
-            col = new_col;
+    pub fn widen(&mut self) {
+        let mut new_grid = Vec::new();
 
-            if next_tile == Tile::Empty {
-                valid_move = true;
-                break;
+        for row in &self.grid {
+            let mut new_row = Vec::new();
+            for &tile in row {
+                if tile == Tile::Box {
+                    new_row.push(Tile::LeftBox);
+                    new_row.push(Tile::RightBox);
+                    continue;
+                }
+
+                new_row.push(tile);
+                new_row.push(tile);
             }
-
-            if next_tile == Tile::Box {
-                has_box = true;
-            }
+            new_grid.push(new_row);
         }
 
-        if valid_move {
-            let (robot_row, robot_col) = self.robot_position;
-            let new_row = (robot_row as isize + d_row) as usize;
-            let new_col = (robot_col as isize + d_col) as usize;
-            self.robot_position = (new_row, new_col);
-
-            if has_box {
-                self.grid[row][col] = Tile::Box;
-                self.grid[new_row][new_col] = Tile::Empty;
-            }
-        }
+        self.grid = new_grid;
+        self.robot_position.1 *= 2
     }
 
     pub fn get_gps_sum(&self) -> usize {
@@ -59,7 +57,7 @@ impl Map {
                 line.iter()
                     .enumerate()
                     .map(|(col, &tile)| {
-                        if tile == Tile::Box {
+                        if tile == Tile::Box || tile == Tile::LeftBox {
                             row * 100 + col
                         } else {
                             0
@@ -68,6 +66,35 @@ impl Map {
                     .sum::<usize>()
             })
             .sum()
+    }
+
+    fn has_room(&self, position: (usize, usize), delta: (isize, isize)) -> bool {
+        let (next_tile_position, next_tile) = self.get_tile_relative(position, delta);
+        if next_tile == Tile::Obstacle {
+            return false;
+        }
+
+        if next_tile == Tile::Empty {
+            return true;
+        }
+
+        self.has_room(next_tile_position, delta)
+    }
+
+    fn get_tile_relative(
+        &self,
+        position: (usize, usize),
+        delta: (isize, isize),
+    ) -> ((usize, usize), Tile) {
+        let row = (position.0 as isize + delta.0) as usize;
+        let col = (position.1 as isize + delta.1) as usize;
+        ((row, col), self.grid[row][col])
+    }
+
+    fn replace_tile(&mut self, position: (usize, usize), tile: Tile) -> Tile {
+        let old_tile = self.grid[position.0][position.1];
+        self.grid[position.0][position.1] = tile;
+        old_tile
     }
 }
 
@@ -117,29 +144,8 @@ impl Display for Map {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Tile {
-    Empty,
-    Obstacle,
-    Box,
-}
-
-impl From<char> for Tile {
-    fn from(c: char) -> Self {
-        match c {
-            '#' => Tile::Obstacle,
-            'O' => Tile::Box,
-            _ => Tile::Empty,
-        }
-    }
-}
-
-impl Display for Tile {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Tile::Box => write!(f, "O"),
-            Tile::Obstacle => write!(f, "#"),
-            Tile::Empty => write!(f, "."),
-        }
-    }
+fn add(position: (usize, usize), delta: (isize, isize)) -> (usize, usize) {
+    let row = (position.0 as isize + delta.0) as usize;
+    let col = (position.1 as isize + delta.1) as usize;
+    (row, col)
 }
