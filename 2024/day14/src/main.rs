@@ -12,13 +12,20 @@ fn part_1(input: &str, width: usize, height: usize) -> usize {
     room.get_safety_factor()
 }
 
-fn part_2(input: &str) -> usize {
-    input.len()
+fn part_2(input: &str, width: usize, height: usize) -> usize {
+    let mut room = Room::new(input, width, height);
+    let mut count = 0;
+    while !room.is_easter_egg() {
+        room.pass_time(1);
+        count += 1;
+    }
+    println!("{}", room);
+    count
 }
 
 fn main() {
     println!("Part 1: {:?}", part_1(INPUT, 101, 103));
-    println!("Part 2: {:?}", part_2(INPUT));
+    println!("Part 2: {:?}", part_2(INPUT, 101, 103));
 }
 
 #[cfg(test)]
