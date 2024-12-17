@@ -1,4 +1,4 @@
-const INPUT: &str = include_str!("input.txt");
+const INPUT: &str = include_str!("../input.txt");
 
 fn part_1(input: &str) -> usize {
     input.len()
@@ -17,17 +17,10 @@ fn main() {
 mod tests {
     use super::*;
 
-    const EXAMPLE: &str = include_str!("example.txt");
-
     #[test]
-    fn test_example_part_1() {
-        let result = part_1(EXAMPLE);
-        assert_eq!(result, 2);
-    }
-
-    #[test]
-    fn test_example_part_2() {
-        let result = part_2(EXAMPLE);
-        assert_eq!(result, 2);
+    fn test_example() {
+        let example = "";
+        assert_eq!(part_1(example), 0);
+        assert_eq!(part_2(example), 0);
     }
 }
