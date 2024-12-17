@@ -7,38 +7,22 @@ pub struct ClawMachine {
 
 impl ClawMachine {
     pub fn get_minimum_tokens(&self) -> Option<usize> {
-        let mut tokens: Vec<usize> = Vec::new();
-        let mut a_presses = 0;
+        let main_determinant =
+            self.button_a.x * self.button_b.y - self.button_a.y * self.button_b.x;
+        let determinant_a = self.prize.x * self.button_b.y - self.prize.y * self.button_b.x;
+        let determinant_b = self.prize.x * self.button_a.y - self.prize.y * self.button_a.x;
 
-        loop {
-            a_presses += 1;
-            let Some(x) = self.prize.x.checked_sub(self.button_a.x * a_presses) else {
-                break;
-            };
-            let Some(y) = self.prize.y.checked_sub(self.button_a.y * a_presses) else {
-                break;
-            };
-
-            if x % self.button_b.x == 0 && y % self.button_b.y == 0 {
-                let b_presses = x / self.button_b.x;
-                if b_presses == y / self.button_b.y {
-                    tokens.push(3 * a_presses + b_presses)
-                }
-            }
-        }
-
-        if tokens.is_empty() {
+        if determinant_a % main_determinant != 0 || determinant_b % main_determinant != 0 {
             return None;
         }
 
-        Some(
-            tokens
-                .iter()
-                .fold(usize::MAX, |min, &x| if x < min { x } else { min }),
-        )
+        let a_presses = (determinant_a / main_determinant).unsigned_abs();
+        let b_presses = (determinant_b / main_determinant).unsigned_abs();
+
+        Some(a_presses * 3 + b_presses)
     }
 
-    pub fn move_prize_position(&mut self, d_x: usize, d_y: usize) {
+    pub fn move_prize_position(&mut self, d_x: isize, d_y: isize) {
         self.prize.x += d_x;
         self.prize.y += d_y;
     }
@@ -59,8 +43,8 @@ impl From<&str> for ClawMachine {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Coord {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
 }
 
 impl From<&str> for Coord {
