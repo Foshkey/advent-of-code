@@ -57,7 +57,7 @@ impl Room {
                     && r.position.y < mid_y_2
             })
             .count();
-        robots_near_middle > 250
+        robots_near_middle > self.robots.len() / 2
     }
 }
 
