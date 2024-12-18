@@ -10,8 +10,8 @@ pub enum Tile {
 }
 
 impl Tile {
-    pub fn is_box(&self) -> bool {
-        matches!(self, Tile::Box | Tile::LeftBox | Tile::RightBox)
+    pub fn is_big_box(&self) -> bool {
+        matches!(self, Tile::LeftBox | Tile::RightBox)
     }
 }
 

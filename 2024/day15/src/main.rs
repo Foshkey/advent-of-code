@@ -59,6 +59,21 @@ mod tests {
     }
 
     #[test]
+    fn test_small_example_2() {
+        let example = "\
+#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^";
+        assert_eq!(part_2(example), 618);
+    }
+
+    #[test]
     fn test_example() {
         let example = "\
 ##########
