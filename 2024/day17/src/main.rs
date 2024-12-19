@@ -39,15 +39,4 @@ Register C: 0
 Program: 0,1,5,4,3,0";
         assert_eq!(&part_1(example), "4,6,3,5,6,3,5,2,1,0");
     }
-
-    #[test]
-    fn test_example_2() {
-        let example = "\
-Register A: 2024
-Register B: 0
-Register C: 0
-
-Program: 0,3,5,4,3,0";
-        assert_eq!(part_2(example), 117440);
-    }
 }

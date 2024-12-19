@@ -1,25 +1,19 @@
+use std::{cmp::Reverse, collections::BinaryHeap};
+
 #[derive(Clone, Debug)]
 pub struct Computer {
     pub output: Vec<u8>,
-    register_a: usize,
-    register_b: usize,
-    register_c: usize,
+    registers: [usize; 3],
     program: Vec<u8>,
     instruction_pointer: usize,
     jumped: bool,
 }
 
 impl Computer {
-    pub fn find_a(&self) -> usize {
-        todo!()
-    }
+    // Part 1
 
     pub fn execute(&mut self) {
-        while let Some(&opcode) = self.program.get(self.instruction_pointer) {
-            let Some(&operand) = self.program.get(self.instruction_pointer + 1) else {
-                break;
-            };
-
+        while let Some((opcode, operand)) = self.get_instruction() {
             self.execute_instruction(opcode, operand);
 
             if !self.jumped {
@@ -30,63 +24,78 @@ impl Computer {
         }
     }
 
+    fn get_instruction(&self) -> Option<(u8, u8)> {
+        let opcode = self.program.get(self.instruction_pointer)?;
+        let operand = self.program.get(self.instruction_pointer + 1)?;
+        Some((*opcode, *operand))
+    }
+
     fn execute_instruction(&mut self, opcode: u8, operand: u8) {
         match opcode {
-            0 => self.adv(operand),
-            1 => self.bxl(operand),
-            2 => self.bst(operand),
-            3 => self.jnz(operand),
-            4 => self.bxc(operand),
-            5 => self.out(operand),
-            6 => self.bdv(operand),
-            7 => self.cdv(operand),
+            0 => self.registers[0] /= 2usize.pow(self.combo(operand) as u32),
+            1 => self.registers[1] ^= operand as usize,
+            2 => self.registers[1] = self.combo(operand) % 8,
+            3 if self.registers[0] != 0 => {
+                self.instruction_pointer = operand as usize;
+                self.jumped = true;
+            }
+            4 => self.registers[1] ^= self.registers[2],
+            5 => self.output.push((self.combo(operand) % 8) as u8),
+            6 => self.registers[1] = self.registers[0] / 2usize.pow(self.combo(operand) as u32),
+            7 => self.registers[2] = self.registers[0] / 2usize.pow(self.combo(operand) as u32),
             _ => (),
         }
     }
 
-    fn adv(&mut self, operand: u8) {
-        self.register_a /= 2usize.pow(self.combo(operand) as u32);
-    }
-
-    fn bxl(&mut self, operand: u8) {
-        self.register_b ^= operand as usize;
-    }
-
-    fn bst(&mut self, operand: u8) {
-        self.register_b = self.combo(operand) % 8;
-    }
-
-    fn jnz(&mut self, operand: u8) {
-        if self.register_a != 0 {
-            self.instruction_pointer = operand as usize;
-            self.jumped = true;
-        }
-    }
-
-    fn bxc(&mut self, _operand: u8) {
-        self.register_b ^= self.register_c;
-    }
-
-    fn out(&mut self, operand: u8) {
-        self.output.push((self.combo(operand) % 8) as u8);
-    }
-
-    fn bdv(&mut self, operand: u8) {
-        self.register_b = self.register_a / 2usize.pow(self.combo(operand) as u32);
-    }
-
-    fn cdv(&mut self, operand: u8) {
-        self.register_c = self.register_a / 2usize.pow(self.combo(operand) as u32);
-    }
-
     fn combo(&self, operand: u8) -> usize {
         match operand {
-            4 => self.register_a,
-            5 => self.register_b,
-            6 => self.register_c,
+            4 => self.registers[0],
+            5 => self.registers[1],
+            6 => self.registers[2],
             7 => panic!("Combo operand 7 is reserved."),
             o => o as usize,
         }
+    }
+
+    // Part 2
+
+    pub fn find_a(&self) -> usize {
+        // This is a specific solution for part 2. Analyzing the program, it encodes
+        // the last 3 binary digits of A, outputs it, and then shifts A over 3 digits.
+        // The reversal of that is starting with the end of the program, see what value
+        // of A matches, and then shifting over 3 binary digits (multiply by 8).
+
+        // This is a reverse priority queue, with pops being the lowest number.
+        let mut heap = BinaryHeap::from([Reverse(0)]);
+        while let Some(Reverse(a)) = heap.pop() {
+            // Check 0-7 (each octal digit)
+            for d in 0..8 {
+                // Add the digit to A and try it
+                let a = a + d;
+                let output = self.execute_with(a);
+
+                // If it matches, hooray we found it. Reverse priority queue means this
+                // should be the lowest possible number.
+                if output == self.program {
+                    return a;
+                }
+
+                // Check if we at least match the end of the program.
+                if matches_end(&self.program, &output) {
+                    // If so, then shift A and push it into the queue
+                    heap.push(Reverse(a * 8));
+                }
+            }
+        }
+
+        0
+    }
+
+    fn execute_with(&self, a: usize) -> Vec<u8> {
+        let mut computer = self.clone();
+        computer.registers[0] = a;
+        computer.execute();
+        computer.output
     }
 }
 
@@ -118,12 +127,16 @@ impl From<&str> for Computer {
 
         Computer {
             output: Vec::new(),
-            register_a: registers[0],
-            register_b: registers[1],
-            register_c: registers[2],
+            registers,
             program,
             instruction_pointer: 0,
             jumped: false,
         }
     }
+}
+
+fn matches_end<T: PartialEq>(main_vec: &[T], suffix: &[T]) -> bool {
+    let start_index = main_vec.len() - suffix.len();
+    let main_slice = &main_vec[start_index..];
+    main_slice == suffix
 }
