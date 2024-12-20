@@ -32,12 +32,12 @@ impl PatternAssembler {
             return 1;
         }
 
-        if self.possibilities.contains_key(&pattern) {
-            return self.possibilities[&pattern];
-        }
-
         if self.not_possible.contains(&pattern) {
             return 0;
+        }
+
+        if let Some(&count) = self.possibilities.get(&pattern) {
+            return count;
         }
 
         for towel in self.towels.clone() {
@@ -58,6 +58,7 @@ impl PatternAssembler {
         }
 
         self.not_possible.insert(pattern);
+
         0
     }
 }
