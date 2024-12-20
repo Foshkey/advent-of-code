@@ -9,8 +9,8 @@ fn part_2(input: &str) -> usize {
 }
 
 fn main() {
-    println!("Part 1: {:?}", part_1(INPUT));
-    println!("Part 2: {:?}", part_2(INPUT));
+    println!("Part 1: {}", part_1(INPUT));
+    println!("Part 2: {}", part_2(INPUT));
 }
 
 #[cfg(test)]
