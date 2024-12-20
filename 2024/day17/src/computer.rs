@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::BinaryHeap};
+use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
 pub struct Computer {
@@ -65,11 +65,11 @@ impl Computer {
         // The reversal of that is starting with the end of the program, see what value
         // of A matches, and then shifting over 3 binary digits (multiply by 8).
 
-        // This is a reverse priority queue, with pops being the lowest number.
-        let mut heap = BinaryHeap::from([Reverse(0)]);
-        while let Some(Reverse(a)) = heap.pop() {
+        // Set up a FIFO queue
+        let mut queue = VecDeque::from([0]);
+        while let Some(a) = queue.pop_front() {
             // Check 0-7 (each octal digit)
-            for d in 0..8 {
+            for d in 0..0o10 {
                 // Add the digit to A and try it
                 let a = a + d;
                 let output = self.execute_with(a);
@@ -83,7 +83,7 @@ impl Computer {
                 // Check if we at least match the end of the program.
                 if matches_end(&self.program, &output) {
                     // If so, then shift A and push it into the queue
-                    heap.push(Reverse(a * 8));
+                    queue.push_back(a * 0o10);
                 }
             }
         }
