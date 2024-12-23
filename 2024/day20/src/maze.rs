@@ -12,25 +12,73 @@ pub struct Maze {
 }
 
 impl Maze {
-    pub fn find_path(&self) -> Option<usize> {
-        // This is your typical A* search algorithm
-        let mut set = BTreeSet::from([(0, self.start)]);
-        let mut steps = HashMap::from([(self.start, 0)]);
+    pub fn find_paths(&self, cheat_length: usize, threshold: usize) -> usize {
+        // First find the base path to determine the max cost
+        let Some(base_path) = self.get_base_path() else {
+            return 0;
+        };
 
-        while let Some((_, current)) = set.pop_first() {
+        let paths = self.find_cheat_paths(base_path, cheat_length, threshold);
+        paths.len()
+    }
+
+    fn find_cheat_paths(
+        &self,
+        path: Vec<Coord>,
+        cheat_length: usize,
+        threshold: usize,
+    ) -> Vec<usize> {
+        let mut time_savings = Vec::new();
+
+        // Go along the path finding cheat "pairs" where distances <= cheat length but it's worth it to cheat
+        for a_i in 0..(path.len() - threshold) {
+            let a = path[a_i];
+            for (b_i, b) in path.iter().enumerate().skip(threshold + a_i) {
+                let d = a.distance(b);
+                if d <= cheat_length {
+                    let savings = b_i - a_i - d;
+                    if savings >= threshold {
+                        time_savings.push(savings)
+                    }
+                }
+            }
+        }
+
+        time_savings
+    }
+
+    fn get_base_path(&self) -> Option<Vec<Coord>> {
+        // This is your typical A* search algorithm
+        let mut open_set = BTreeSet::from([(0, self.start)]);
+        let mut steps = HashMap::from([(self.start, 0)]);
+        let mut came_from = HashMap::new();
+
+        while let Some((_, current)) = open_set.pop_first() {
             if current == self.end {
-                return Some(steps[&self.end]);
+                let mut current = current;
+                let mut path = Vec::from([self.end]);
+                while let Some(&previous) = came_from.get(&current) {
+                    path.push(previous);
+                    current = previous;
+                }
+                path.reverse();
+                return Some(path);
             }
 
-            for neighbor in self.get_neighbors(&current) {
+            for neighbor in self
+                .get_neighbors(&current)
+                .into_iter()
+                .filter_map(|(n, is_empty)| if is_empty { Some(n) } else { None })
+            {
                 let tentative_steps = steps[&current] + 1;
                 let is_better_path = steps
                     .get(&neighbor)
                     .map_or(true, |&steps| tentative_steps < steps);
 
                 if is_better_path {
+                    came_from.insert(neighbor, current);
                     steps.insert(neighbor, tentative_steps);
-                    set.insert((tentative_steps + neighbor.distance(&self.end), neighbor));
+                    open_set.insert((tentative_steps + neighbor.distance(&self.end), neighbor));
                 }
             }
         }
@@ -38,66 +86,18 @@ impl Maze {
         None
     }
 
-    /// Finds all cheats that saves time
-    /// Returns:
-    ///     A list of time savings
-    pub fn find_cheats(&self) -> Vec<usize> {
-        let mut maze = self.clone();
-        let mut time_savings = Vec::new();
-        let Some(base_path) = self.find_path() else {
-            return time_savings;
-        };
-
-        for (row, line) in self.grid.iter().enumerate() {
-            for (col, &is_empty) in line.iter().enumerate() {
-                // Skip if this isn't a wall
-                if is_empty {
-                    continue;
-                }
-
-                // Determine if this is a wall worth jumping through (empty on either side)
-                let position = Coord { row, col };
-                let neighbors = self.get_neighbors(&position);
-                let empty_neighbors = neighbors.len() == 2
-                    && (neighbors[0].row == neighbors[1].row
-                        || neighbors[0].col == neighbors[1].col);
-                if !empty_neighbors {
-                    continue;
-                }
-
-                // Remove the wall and test
-                *maze.get_mut(&position).unwrap() = true;
-                let path = maze.find_path().unwrap();
-                if path < base_path {
-                    time_savings.push(base_path - path);
-                }
-                *maze.get_mut(&position).unwrap() = false;
-            }
-        }
-
-        time_savings
-    }
-
-    fn get_neighbors(&self, position: &Coord) -> Vec<Coord> {
+    fn get_neighbors(&self, position: &Coord) -> Vec<(Coord, bool)> {
         [(-1, 0), (1, 0), (0, -1), (0, 1)]
             .into_iter()
             .filter_map(|(d_row, d_col)| self.get_relative(position, d_row, d_col))
             .collect()
     }
 
-    fn get_relative(&self, position: &Coord, d_row: isize, d_col: isize) -> Option<Coord> {
+    fn get_relative(&self, position: &Coord, d_row: isize, d_col: isize) -> Option<(Coord, bool)> {
         let row = position.row.checked_add_signed(d_row)?;
         let col = position.col.checked_add_signed(d_col)?;
-        let &empty = self.grid.get(row)?.get(col)?;
-        if empty {
-            Some(Coord { col, row })
-        } else {
-            None
-        }
-    }
-
-    fn get_mut(&mut self, position: &Coord) -> Option<&mut bool> {
-        self.grid.get_mut(position.row)?.get_mut(position.col)
+        let &is_empty = self.grid.get(row)?.get(col)?;
+        Some((Coord { col, row }, is_empty))
     }
 }
 
@@ -163,28 +163,5 @@ impl From<&str> for Coord {
 impl Display for Coord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{},{}", self.col, self.row)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_set_item_ordering() {
-        let position1 = Coord { col: 1, row: 1 };
-        let position2 = Coord { col: 1, row: 2 };
-        let position3 = Coord { col: 0, row: 0 };
-
-        let mut queue = BTreeSet::new();
-        queue.insert((3, position1));
-        queue.insert((1, position1));
-        queue.insert((2, position2));
-        queue.insert((0, position3));
-
-        assert_eq!(position3, queue.pop_first().unwrap().1);
-        assert_eq!(position1, queue.pop_first().unwrap().1);
-        assert_eq!(position2, queue.pop_first().unwrap().1);
-        assert_eq!(position1, queue.pop_first().unwrap().1);
     }
 }

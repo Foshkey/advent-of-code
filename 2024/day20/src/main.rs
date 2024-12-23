@@ -6,20 +6,17 @@ const INPUT: &str = include_str!("../input.txt");
 
 fn part_1(input: &str, threshold: usize) -> usize {
     let maze: Maze = input.parse().unwrap();
-    let cheats = maze.find_cheats();
-    cheats
-        .iter()
-        .filter(|&&savings| savings >= threshold)
-        .count()
+    maze.find_paths(2, threshold)
 }
 
-fn part_2(input: &str) -> usize {
-    input.len()
+fn part_2(input: &str, threshold: usize) -> usize {
+    let maze: Maze = input.parse().unwrap();
+    maze.find_paths(20, threshold)
 }
 
 fn main() {
     println!("Part 1: {}", part_1(INPUT, 100));
-    println!("Part 2: {}", part_2(INPUT));
+    println!("Part 2: {}", part_2(INPUT, 100));
 }
 
 #[cfg(test)]
@@ -45,6 +42,6 @@ mod tests {
 #...#...#...###
 ###############";
 
-        assert_eq!(part_1(example, 0), 30);
+        assert_eq!(part_1(example, 2), 44);
     }
 }
