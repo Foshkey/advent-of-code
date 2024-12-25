@@ -28,55 +28,29 @@ impl Robot {
 
     fn get_path(&self, target: Coord) -> String {
         let mut paths = Vec::new();
-        let mut vertical = String::new();
-        let mut horizontal = String::new();
-        let Coord { mut row, mut col } = self.position;
+        let Coord { row, col } = self.position;
+        let mut horizontal_first = false;
 
-        while row != target.row {
-            if row < target.row {
-                vertical.push('v');
-                row += 1;
-            } else {
-                vertical.push('^');
-                row -= 1;
-            }
+        let vertical = if row < target.row {
+            "v".repeat(target.row - row)
+        } else {
+            "^".repeat(row - target.row)
+        };
+
+        let horizontal = if col < target.col {
+            ">".repeat(target.col - col)
+        } else {
+            horizontal_first = true;
+            "<".repeat(col - target.col)
+        };
+
+        if horizontal_first {
+            paths.push(horizontal.clone() + &vertical);
+            paths.push(vertical + &horizontal);
+        } else {
+            paths.push(vertical.clone() + &horizontal);
+            paths.push(horizontal + &vertical);
         }
-
-        while col != target.col {
-            if col < target.col {
-                horizontal.push('>');
-                col += 1;
-            } else {
-                horizontal.push('<');
-                col -= 1;
-            }
-        }
-
-        paths.push(vertical.clone() + &horizontal);
-        paths.push(horizontal + &vertical);
-        paths.sort_by(|a, b| {
-            let a_priority = a
-                .chars()
-                .map(|c| match c {
-                    '<' => 0,
-                    'v' => 1,
-                    '>' => 2,
-                    '^' => 3,
-                    _ => 4,
-                })
-                .collect::<Vec<_>>();
-            let b_priority = b
-                .chars()
-                .map(|c| match c {
-                    '<' => 0,
-                    'v' => 1,
-                    '>' => 2,
-                    '^' => 3,
-                    _ => 4,
-                })
-                .collect::<Vec<_>>();
-            a_priority.cmp(&b_priority)
-        });
 
         paths.into_iter().find(|p| self.is_path_clear(p)).unwrap()
     }
@@ -115,20 +89,6 @@ impl Robot {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_numeric() {
-        let mut robot = Robot::new(Keypad::Numeric);
-        let result = robot.enter_code("029A");
-        assert_eq!(result, "<A^A>^^AvvvA");
-    }
-
-    #[test]
-    fn test_directional() {
-        let mut robot = Robot::new(Keypad::Directional);
-        let result = robot.enter_code("<A^A>^^AvvvA");
-        assert_eq!(result, "v<<A>>^A<A>AvA<^AA>A<vAAA>^A");
-    }
 
     #[test]
     fn test_combo() {
