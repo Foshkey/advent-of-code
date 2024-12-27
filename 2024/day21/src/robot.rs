@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use crate::types::{Coord, Keypad};
 
 pub struct Robot {
     keypad: Keypad,
     position: Coord,
     gap: Coord,
+    cache: HashMap<(Coord, Coord), String>,
 }
 
 impl Robot {
@@ -12,6 +15,7 @@ impl Robot {
             keypad,
             position: keypad.get_coord('A'),
             gap: keypad.get_gap(),
+            cache: HashMap::new(),
         }
     }
 
@@ -21,9 +25,16 @@ impl Robot {
 
     fn press(&mut self, digit: char) -> String {
         let target = self.keypad.get_coord(digit);
-        let path = self.get_path(target);
+
+        if let Some(cached_result) = self.cache.get(&(self.position, target)) {
+            self.position = target;
+            return cached_result.clone();
+        }
+
+        let result = self.get_path(target) + "A";
+        self.cache.insert((self.position, target), result.clone());
         self.position = target;
-        path + "A"
+        result
     }
 
     fn get_path(&self, target: Coord) -> String {
