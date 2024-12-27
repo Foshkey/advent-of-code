@@ -7,35 +7,31 @@ mod types;
 const INPUT: &str = include_str!("../input.txt");
 
 fn part_1(input: &str) -> usize {
-    let mut numeric_robot = Robot::new(Keypad::Numeric);
+    let numeric_robot = Robot::new(Keypad::Numeric);
     let mut directional_robot = Robot::new(Keypad::Directional);
 
     input
         .lines()
         .map(|line| {
-            let result = numeric_robot.enter_code(line);
-            let result = directional_robot.enter_code(&result);
-            let result = directional_robot.enter_code(&result);
+            let directions = numeric_robot.get_directions(line);
+            let cost = directional_robot.get_cost(&directions, 2);
             let num = line[0..3].parse::<usize>().unwrap();
-            result.len() * num
+            cost * num
         })
         .sum()
 }
 
 fn part_2(input: &str) -> usize {
-    let mut numeric_robot = Robot::new(Keypad::Numeric);
+    let numeric_robot = Robot::new(Keypad::Numeric);
     let mut directional_robot = Robot::new(Keypad::Directional);
 
     input
         .lines()
         .map(|line| {
-            let mut result = numeric_robot.enter_code(line);
-            for _ in 0..25 {
-                result = directional_robot.enter_code(&result);
-                println!("{}", result.len());
-            }
+            let directions = numeric_robot.get_directions(line);
+            let cost = directional_robot.get_cost(&directions, 25);
             let num = line[0..3].parse::<usize>().unwrap();
-            result.len() * num
+            cost * num
         })
         .sum()
 }
