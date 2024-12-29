@@ -1,6 +1,3 @@
-use number_generator::generate_number;
-use sequence_finder::SequenceFinder;
-
 mod number_generator;
 mod sequence_finder;
 
@@ -9,13 +6,12 @@ const INPUT: &str = include_str!("../input.txt");
 fn part_1(input: &str) -> usize {
     input
         .lines()
-        .map(|l| generate_number(l.parse().unwrap(), 2000))
+        .map(|l| number_generator::generate_number(l.parse().unwrap(), 2000))
         .sum()
 }
 
 fn part_2(input: &str) -> usize {
-    let sequence_finder = SequenceFinder::new(input, 2000);
-    sequence_finder.find_max_bananas()
+    sequence_finder::find_max_bananas(input, 2000)
 }
 
 fn main() {
