@@ -11,8 +11,11 @@ fn part_1(input: &str) -> usize {
         .len()
 }
 
-fn part_2(input: &str) -> usize {
-    input.len()
+fn part_2(input: &str) -> String {
+    let network: Network = input.into();
+    let mut max_clique: Vec<_> = network.find_maximum_clique().into_iter().collect();
+    max_clique.sort();
+    max_clique.join(",")
 }
 
 fn main() {
@@ -28,5 +31,6 @@ mod tests {
     fn test_example() {
         let example = include_str!("../example.txt");
         assert_eq!(part_1(example), 7);
+        assert_eq!(part_2(example), "co,de,ka,ta");
     }
 }

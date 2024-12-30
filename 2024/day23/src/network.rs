@@ -28,6 +28,55 @@ impl Network {
             })
             .collect()
     }
+
+    pub fn find_maximum_clique(&self) -> HashSet<String> {
+        let mut max_clique = HashSet::new();
+        let mut r = HashSet::new();
+        let mut p = self.connections.keys().cloned().collect::<HashSet<_>>();
+        let mut x = HashSet::new();
+
+        self.bron_kerbosch(&mut r, &mut p, &mut x, &mut max_clique);
+
+        max_clique
+    }
+
+    fn bron_kerbosch(
+        &self,
+        r: &mut HashSet<String>,
+        p: &mut HashSet<String>,
+        x: &mut HashSet<String>,
+        max_clique: &mut HashSet<String>,
+    ) {
+        // Gotta love graph theory. Classic algorithm to find maximum clique.
+        if p.is_empty() && x.is_empty() {
+            if r.len() > max_clique.len() {
+                *max_clique = r.clone();
+            }
+            return;
+        }
+
+        let pivot = p.union(x).next().unwrap().clone();
+        let p_without_neighbors = p
+            .difference(&self.connections[&pivot])
+            .cloned()
+            .collect::<HashSet<_>>();
+
+        for v in p_without_neighbors {
+            r.insert(v.clone());
+            let mut new_p = p
+                .intersection(&self.connections[&v])
+                .cloned()
+                .collect::<HashSet<_>>();
+            let mut new_x = x
+                .intersection(&self.connections[&v])
+                .cloned()
+                .collect::<HashSet<_>>();
+            self.bron_kerbosch(r, &mut new_p, &mut new_x, max_clique);
+            r.remove(&v);
+            p.remove(&v);
+            x.insert(v);
+        }
+    }
 }
 
 impl From<&str> for Network {
