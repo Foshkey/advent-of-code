@@ -25,10 +25,6 @@ impl Processor {
     }
 
     fn get_state(&self, key: &String) -> bool {
-        self.get_state_rec(key)
-    }
-
-    fn get_state_rec(&self, key: &String) -> bool {
         // Check if it's an input
         if let Some(state) = self.inputs.get(key) {
             return *state;
@@ -41,8 +37,8 @@ impl Processor {
         } = self.gates.get(key).unwrap();
 
         // Recursively process the gate
-        let left = self.get_state_rec(left_input);
-        let right = self.get_state_rec(right_input);
+        let left = self.get_state(left_input);
+        let right = self.get_state(right_input);
         match op {
             Op::And => left & right,
             Op::Or => left | right,
