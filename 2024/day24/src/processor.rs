@@ -83,7 +83,7 @@ impl Processor {
             };
 
             // Loop through all swap combinations and find a swap that makes it better
-            let mut swap_found = false;
+            let mut best = None;
             for (i, gate1) in original_gates.iter().enumerate() {
                 for (j, gate2) in original_gates.iter().enumerate() {
                     if i >= j {
@@ -98,18 +98,16 @@ impl Processor {
                         println!("{gate1} {gate2} failed at {failed_at}");
                         // If we found a higher bit, save it
                         if failed_at > last_failed_at {
-                            println!("Good swap found: {gate1} {gate2}, failed at {failed_at}");
-                            swap_found = true;
-                            swaps.insert(gate1.clone());
-                            swaps.insert(gate2.clone());
+                            println!(
+                                "Swap candidate found: {gate1} {gate2}, failed at {failed_at}"
+                            );
+                            best = Some((gate1, gate2));
                             last_failed_at = failed_at;
-                            break;
                         }
                     } else {
                         // If okay, then passed, break out
                         passed = true;
-                        swaps.insert(gate1.clone());
-                        swaps.insert(gate2.clone());
+                        best = Some((gate1, gate2));
                         break;
                     }
 
@@ -117,9 +115,16 @@ impl Processor {
                     self.swap_gates(gate1, gate2);
                 }
 
-                if passed || swap_found {
+                if passed {
                     break;
                 }
+            }
+
+            // Save the best as a permanent swap
+            if let Some((gate1, gate2)) = best {
+                self.swap_gates(gate1, gate2);
+                swaps.insert(gate1.clone());
+                swaps.insert(gate2.clone());
             }
         }
 
