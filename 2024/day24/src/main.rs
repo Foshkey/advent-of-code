@@ -6,13 +6,14 @@ const INPUT: &str = include_str!("../input.txt");
 
 fn part_1(input: &str) -> usize {
     let processor: Processor = input.parse().unwrap();
-    processor.get_value('z').unwrap()
+    processor.get_output()
 }
 
 fn part_2(input: &str) -> String {
     let processor: Processor = input.parse().unwrap();
-    let swaps = processor.get_wrong_gates();
-    swaps.into_iter().collect::<Vec<_>>().join(",")
+    let mut swaps: Vec<_> = processor.get_wrong_gates().into_iter().collect();
+    swaps.sort();
+    swaps.join(",")
 }
 
 fn main() {
