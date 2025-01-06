@@ -4,26 +4,31 @@ use std::{
     str::FromStr,
 };
 
-use super::{module::Module, module_type::ModuleType, pulse::Pulse};
 use anyhow::Result;
+
+use crate::module::{Module, ModuleType, Pulse, PulseResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Configuration {
     state: HashMap<String, Module>,
-    pulses: HashMap<Pulse, u64>,
+    pulses: HashMap<Pulse, usize>,
 }
 
 impl Configuration {
-    pub fn push_button(&mut self) -> bool {
+    pub fn push_button(&mut self) {
         let mut queue = VecDeque::new();
-        queue.push_back((Pulse::Low, "broadcaster".to_string(), "button".to_string()));
+        queue.push_back(PulseResult {
+            pulse: Pulse::Low,
+            destination: "broadcaster".to_string(),
+            from: "button".to_string(),
+        });
 
-        while let Some((pulse, name, from)) = queue.pop_front() {
-            // First check if this is a low pulse to rx
-            if pulse == Pulse::Low && name == "rx" {
-                return true;
-            }
-
+        while let Some(PulseResult {
+            pulse,
+            destination: name,
+            from,
+        }) = queue.pop_front()
+        {
             // Record pulse
             *self.pulses.entry(pulse).or_insert(0) += 1;
 
@@ -32,48 +37,15 @@ impl Configuration {
                 continue;
             };
 
-            // Figure out the new pulse, if any
-            let mut new_pulse = None;
-            match module.module_type.borrow_mut() {
-                ModuleType::Broadcaster => new_pulse = Some(pulse),
-                ModuleType::FlipFlop(on) if pulse != Pulse::High => {
-                    // If on, send low. If off, send high.
-                    new_pulse = if *on {
-                        Some(Pulse::Low)
-                    } else {
-                        Some(Pulse::High)
-                    };
-                    // Flip the flip-flop
-                    *on = !*on;
-                }
-                ModuleType::Conjuction(memory) => {
-                    // Update memory of the pulse
-                    if let Some(memory_pulse) = memory.get_mut(&from) {
-                        *memory_pulse = pulse
-                    }
+            // Process pulses
+            let results = module.process_pulse(pulse, &from);
 
-                    // Send low pulse if all are high, otherwise low
-                    new_pulse = if memory.values().all(|&pulse| pulse == Pulse::High) {
-                        Some(Pulse::Low)
-                    } else {
-                        Some(Pulse::High)
-                    }
-                }
-                _ => (),
-            }
-
-            // Queue up the pulse to the destinations
-            if let Some(new_pulse) = new_pulse {
-                for destination in &module.outputs {
-                    queue.push_back((new_pulse, destination.clone(), name.clone()));
-                }
-            }
+            // Add the results to the queue
+            queue.extend(results);
         }
-
-        false
     }
 
-    pub fn get_total_pulses(&self) -> u64 {
+    pub fn get_total_pulses(&self) -> usize {
         self.pulses[&Pulse::Low] * self.pulses[&Pulse::High]
     }
 }
@@ -107,7 +79,7 @@ impl FromStr for Configuration {
         // Initialize pulses
         let pulses = [(Pulse::Low, 0), (Pulse::High, 0)]
             .into_iter()
-            .collect::<HashMap<Pulse, u64>>();
+            .collect::<HashMap<Pulse, usize>>();
 
         Ok(Configuration { pulses, state })
     }
@@ -115,8 +87,6 @@ impl FromStr for Configuration {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::module_type::ModuleType;
-
     use super::*;
 
     #[test]
