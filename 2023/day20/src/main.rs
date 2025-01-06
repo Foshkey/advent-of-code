@@ -1,12 +1,12 @@
 use configuration::Configuration;
 
 mod configuration;
+mod math;
 mod module;
 
 fn part_1(input: &str) -> usize {
     let mut config: Configuration = input.parse().unwrap();
 
-    // lol button go brrrr
     for _ in 0..1000 {
         config.push_button();
     }
@@ -15,7 +15,8 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
-    0
+    let mut config: Configuration = input.parse().unwrap();
+    config.get_min_presses_rx()
 }
 
 fn main() {

@@ -1,12 +1,15 @@
 use std::{
-    borrow::BorrowMut,
+    borrow::{Borrow, BorrowMut},
     collections::{HashMap, VecDeque},
     str::FromStr,
 };
 
 use anyhow::Result;
 
-use crate::module::{Module, ModuleType, Pulse, PulseResult};
+use crate::{
+    math,
+    module::{Module, ModuleType, Pulse, PulseResult},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Configuration {
@@ -47,6 +50,70 @@ impl Configuration {
 
     pub fn get_total_pulses(&self) -> usize {
         self.pulses[&Pulse::Low] * self.pulses[&Pulse::High]
+    }
+
+    pub fn get_min_presses_rx(&mut self) -> usize {
+        // Get the predecessor to rx, which should be a conjunction
+        let Some(predecessor) = self
+            .state
+            .values()
+            .find(|&module| module.outputs.contains(&"rx".to_string()))
+        else {
+            return 0;
+        };
+
+        // Get the memory to initialize the tracker
+        let ModuleType::Conjuction(memory) = predecessor.module_type.borrow() else {
+            return 0;
+        };
+
+        let predecessor = predecessor.name.clone();
+
+        // This tracker will track the number of button presses to get a high pulse from a given module
+        let mut tracker: HashMap<String, Option<usize>> =
+            memory.keys().map(|name| (name.clone(), None)).collect();
+
+        // Simulate button presses (similar to code above)
+        for presses in 1..10000 {
+            let mut queue = VecDeque::new();
+            queue.push_back(PulseResult {
+                pulse: Pulse::Low,
+                destination: "broadcaster".to_string(),
+                from: "button".to_string(),
+            });
+
+            while let Some(PulseResult {
+                pulse,
+                destination: name,
+                from,
+            }) = queue.pop_front()
+            {
+                let Some(module) = self.state.get_mut(&name) else {
+                    continue;
+                };
+
+                // This is the key difference: if it's a high pulse going to the predecessor
+                // Add to the tracker where it came from and how many button presses it took
+                // to get here, but we only want to record the first time.
+                if pulse == Pulse::High && name == predecessor {
+                    if let Some(value) = tracker.get_mut(&from) {
+                        if value.is_none() {
+                            *value = Some(presses)
+                        }
+                    }
+                }
+
+                queue.extend(module.process_pulse(pulse, &from));
+            }
+
+            // If all tracker values have something, we're done
+            if tracker.values().all(|&value| value.is_some()) {
+                break;
+            }
+        }
+
+        // Calculate LCM of the values
+        math::lcm(tracker.values().filter_map(|&x| x).collect())
     }
 }
 
