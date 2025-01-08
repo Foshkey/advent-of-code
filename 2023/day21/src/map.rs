@@ -1,11 +1,10 @@
-use std::{collections::HashSet, str::FromStr};
+use std::collections::HashSet;
 
 #[derive(Clone, Debug)]
 pub struct Map {
     start: Coord,
     grid: Vec<Vec<bool>>,
-    width: usize,
-    height: usize,
+    size: usize,
 }
 
 impl Map {
@@ -13,9 +12,11 @@ impl Map {
         let mut set = HashSet::from([self.start]);
 
         for _ in 0..distance {
-            set = set.iter().fold(HashSet::new(), |set, position| {
-                set.union(&self.get_neighbors(position)).copied().collect()
-            });
+            let mut new_set = HashSet::new();
+            for position in set {
+                new_set.extend(self.get_neighbors(&position));
+            }
+            set = new_set;
         }
 
         set.len()
@@ -30,32 +31,30 @@ impl Map {
 
     fn get_relative(&self, position: &Coord, d_row: isize, d_col: isize) -> Option<Coord> {
         let row = position.row + d_row;
-        let row_vec = self.grid.get(get_index(row, self.height))?;
+        let row_vec = self.grid.get(self.get_index(row))?;
         let col = position.col + d_col;
-        let is_empty = row_vec.get(get_index(col, self.width))?;
+        let is_empty = row_vec.get(self.get_index(col))?;
         if *is_empty {
             Some(Coord { col, row })
         } else {
             None
         }
     }
+
+    fn get_index(&self, index: isize) -> usize {
+        let result = index % self.size as isize;
+        (if result < 0 {
+            result + self.size as isize
+        } else {
+            result
+        }) as usize
+    }
 }
 
-fn get_index(index: isize, size: usize) -> usize {
-    let result = index % size as isize;
-    (if result < 0 {
-        result + size as isize
-    } else {
-        result
-    }) as usize
-}
-
-impl FromStr for Map {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut start = None;
-        let grid = s
+impl From<&str> for Map {
+    fn from(s: &str) -> Self {
+        let mut start = Coord { row: 0, col: 0 };
+        let grid: Vec<Vec<bool>> = s
             .lines()
             .enumerate()
             .map(|(row, line)| {
@@ -63,28 +62,24 @@ impl FromStr for Map {
                     .enumerate()
                     .map(|(col, ch)| match ch {
                         'S' => {
-                            start = Some(Coord {
+                            start = Coord {
                                 row: row as isize,
                                 col: col as isize,
-                            });
-                            Ok(true)
+                            };
+                            true
                         }
-                        '.' => Ok(true),
-                        '#' => Ok(false),
-                        _ => Err(format!("Invalid character at row {row}, col {col}: {ch}")),
+                        '.' => true,
+                        _ => false,
                     })
-                    .collect::<Result<Vec<bool>, Self::Err>>()
+                    .collect()
             })
-            .collect::<Result<Vec<Vec<bool>>, Self::Err>>()?;
+            .collect();
 
-        let start = start.ok_or("Start position not found")?;
-
-        Ok(Map {
+        Map {
             start,
-            width: grid.len(),
-            height: grid.first().unwrap().len(),
+            size: grid.len(),
             grid,
-        })
+        }
     }
 }
 
