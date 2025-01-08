@@ -8,7 +8,7 @@ pub struct Map {
 }
 
 impl Map {
-    pub fn get_num_spaces(&self, distance: usize) -> usize {
+    pub fn get_num_spaces_1(&self, distance: usize) -> usize {
         let mut set = HashSet::from([self.start]);
 
         for _ in 0..distance {
@@ -20,6 +20,33 @@ impl Map {
         }
 
         set.len()
+    }
+
+    pub fn get_num_spaces_2(&self, distance: usize) -> usize {
+        let grids = distance / self.size;
+        let rem = distance % self.size;
+        let mut set = HashSet::from([self.start]);
+        let mut sequence = [0; 3];
+        let mut steps = 0;
+
+        for (i, item) in sequence.iter_mut().enumerate() {
+            let start = steps;
+            for _ in start..(i * self.size + rem) {
+                let mut new_set = HashSet::new();
+                for position in set {
+                    new_set.extend(self.get_neighbors(&position));
+                }
+                set = new_set;
+                steps += 1;
+            }
+            *item = set.len();
+        }
+
+        let c = sequence[0];
+        let a = ((sequence[2] - c) - (2 * (sequence[1] - c))) / 2;
+        let b = (sequence[1] - c) - a;
+
+        a * (grids * grids) + b * grids + c
     }
 
     fn get_neighbors(&self, position: &Coord) -> HashSet<Coord> {
