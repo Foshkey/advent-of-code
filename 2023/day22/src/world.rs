@@ -3,18 +3,20 @@ use std::collections::{HashMap, HashSet};
 use crate::brick::Brick;
 
 pub struct World {
-    /// A map where the key is the ONLY supporting brick for the set
+    /// A map where the key is a supporting brick for the set
     bricks: HashMap<Brick, HashSet<Brick>>,
+    /// A map where the key is supported by the set
+    supported: HashMap<Brick, HashSet<Brick>>,
 }
 
 impl World {
     pub fn new(bricks: impl Iterator<Item = Brick>) -> Self {
-        let mut bricks: Vec<Brick> = bricks.collect();
-        bricks.sort();
+        let mut bricks_vec: Vec<Brick> = bricks.collect();
+        bricks_vec.sort();
 
         // Settle all the bricks
         let mut settled: Vec<&Brick> = Vec::new();
-        for brick in bricks.iter_mut() {
+        for brick in bricks_vec.iter_mut() {
             let new_z = settled
                 .iter()
                 .filter(|&&other| brick.will_collide(other))
@@ -26,65 +28,79 @@ impl World {
             settled.push(brick);
         }
 
-        // Build up the support map
-        let bricks = bricks
+        // Build up the maps
+        let mut supported = HashMap::new();
+        let bricks = bricks_vec
             .iter()
             .enumerate()
             .map(|(i, brick)| {
                 (
                     *brick,
                     // Find any bricks that this brick is supporting
-                    bricks[i..]
+                    bricks_vec[i..]
                         .iter()
-                        .enumerate()
-                        .filter(|(j, supported)| {
-                            // brick supports this brick
-                            brick.supports(supported)
-                                // and there is no other brick that supports this brick
-                                && !bricks[..i + j]
-                                    .iter()
-                                    .any(|other| brick != other && other.supports(supported))
+                        .filter(|supported_brick| brick.supports(supported_brick))
+                        .map(|supported_brick| {
+                            // Also add to the supported map
+                            supported
+                                .entry(*supported_brick)
+                                .or_insert(HashSet::new())
+                                .insert(*brick);
+                            *supported_brick
                         })
-                        .map(|(_, supported)| *supported)
                         .collect(),
                 )
             })
             .collect();
 
-        World { bricks }
+        World { bricks, supported }
     }
 
     pub fn count_safe(&self) -> usize {
-        // If the brick isn't the only supporter of any other bricks, then it's safe
+        // Go through each brick
         self.bricks
             .iter()
-            .filter(|&(_, supported)| supported.is_empty())
+            .filter(|(_, set)| {
+                // Check all of the bricks that are supported by this brick
+                set.iter().all(|brick| {
+                    // If it's supported by more than 1, then we're good
+                    self.supported
+                        .get(brick)
+                        .map(|s| s.len())
+                        .unwrap_or_default()
+                        > 1
+                })
+            })
             .count()
     }
 
     pub fn count_chain_reactions(&self) -> usize {
-        let mut results: HashMap<Brick, usize> = HashMap::new();
         self.bricks
             .keys()
-            .map(|brick| self.count_will_fall(brick, &mut results))
+            .map(|brick| self.count_falling(brick))
             .sum()
     }
 
-    fn count_will_fall(&self, brick: &Brick, results: &mut HashMap<Brick, usize>) -> usize {
-        if let Some(result) = results.get(brick) {
-            return *result;
+    fn count_falling(&self, brick: &Brick) -> usize {
+        // This is a set of falling bricks
+        let mut falling = HashSet::from([*brick]);
+        // And cloning the supported map since we'll removing entries as we go along
+        let mut supported = self.supported.clone();
+
+        // Keep searching for more bricks that will fall
+        while let Some((&another, _)) = supported
+            .iter()
+            // If the entire supporting set is within the set of falling bricks
+            .find(|(_, set)| set.is_subset(&falling))
+        {
+            // It's also falling
+            falling.insert(another);
+            // And remove it from supported so we don't consider it again
+            supported.remove(&another);
         }
 
-        let Some(set) = self.bricks.get(brick) else {
-            return 0;
-        };
-
-        let result = set
-            .iter()
-            .map(|supported| self.count_will_fall(supported, results) + 1)
-            .sum();
-        results.insert(*brick, result);
-        result
+        // Minus one because we're not counting the original brick
+        falling.len() - 1
     }
 }
 
