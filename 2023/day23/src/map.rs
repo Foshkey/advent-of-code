@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeSet, HashMap, HashSet},
+};
 
 pub struct Map {
     grid: Vec<Vec<char>>,
@@ -8,12 +11,21 @@ pub struct Map {
 
 impl Map {
     pub fn get_longest_path(&self, slippery: bool) -> HashSet<Coord> {
-        // Fun little modified dijkstra
-        let mut set = VecDeque::from([(self.start, HashSet::new())]);
+        // What if we do A* but take the largest f_score first?
+        let mut set = BTreeSet::from([SetItem {
+            score: 0,
+            position: self.start,
+            path: HashSet::new(),
+        }]);
         let mut steps = HashMap::from([(self.start, 0)]);
-        let mut paths: Vec<HashSet<Coord>> = Vec::new();
+        let mut paths = Vec::new();
 
-        while let Some((current, mut path)) = set.pop_front() {
+        while let Some(SetItem {
+            score: _,
+            position: current,
+            mut path,
+        }) = set.pop_last()
+        {
             if current == self.end {
                 paths.push(path);
                 continue;
@@ -24,7 +36,7 @@ impl Map {
                 let tentative_steps = steps[&current] + traveled.len();
                 let is_better_path = steps
                     .get(&neighbor)
-                    .map_or(true, |&steps| tentative_steps >= steps);
+                    .map_or(true, |&steps| tentative_steps > steps);
 
                 if is_better_path {
                     steps.insert(neighbor, tentative_steps);
@@ -37,21 +49,29 @@ impl Map {
                 let (neighbor, traveled) = to_add.pop().unwrap();
                 let mut new_path = path.clone();
                 new_path.extend(traveled);
-                set.push_back((neighbor, new_path));
+                set.insert(SetItem {
+                    score: new_path.len() + neighbor.distance(&self.end),
+                    position: neighbor,
+                    path: new_path,
+                });
             }
 
             // This should be the final one (if at all) so don't clone
             if let Some((neighbor, traveled)) = to_add.pop() {
                 path.extend(traveled);
-                set.push_back((neighbor, path));
+                set.insert(SetItem {
+                    score: path.len() + neighbor.distance(&self.end),
+                    position: neighbor,
+                    path,
+                });
             }
         }
 
-        paths.into_iter().fold(HashSet::new(), |longest, set| {
-            if set.len() > longest.len() {
+        paths.into_iter().fold(HashSet::new(), |largest, set| {
+            if set.len() > largest.len() {
                 set
             } else {
-                longest
+                largest
             }
         })
     }
@@ -150,4 +170,32 @@ impl From<&str> for Map {
 pub struct Coord {
     row: usize,
     col: usize,
+}
+
+impl Coord {
+    pub fn distance(&self, other: &Coord) -> usize {
+        (self.col as isize - other.col as isize).unsigned_abs()
+            + (self.row as isize - other.row as isize).unsigned_abs()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SetItem {
+    score: usize,
+    position: Coord,
+    path: HashSet<Coord>,
+}
+
+impl Ord for SetItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.score
+            .cmp(&other.score)
+            .then(self.position.cmp(&other.position))
+    }
+}
+
+impl PartialOrd for SetItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
