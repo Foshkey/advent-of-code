@@ -3,13 +3,13 @@ use map::Map;
 mod map;
 
 fn part_1(input: &str) -> usize {
-    let map: Map = input.into();
-    map.get_longest_path(true).len()
+    let map = Map::new(input, true);
+    map.get_longest_path().unwrap()
 }
 
 fn part_2(input: &str) -> usize {
-    let map: Map = input.into();
-    map.get_longest_path(false).len()
+    let map = Map::new(input, false);
+    map.get_longest_path().unwrap()
 }
 
 fn main() {
