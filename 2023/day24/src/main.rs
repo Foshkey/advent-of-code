@@ -14,24 +14,19 @@ fn main() {
 }
 
 fn part_1(input: &str, test_area: Range<i64>) -> usize {
-    let mut count = 0;
     let hailstones: Vec<Hailstone> = input.lines().map(|line| line.into()).collect();
-    for (i1, h1) in hailstones.iter().enumerate() {
-        for (i2, h2) in hailstones.iter().enumerate() {
-            if i1 >= i2 {
-                continue;
-            }
-
-            let Some((x, y)) = h1.find_2d_collision(h2) else {
-                continue;
-            };
-
-            if test_area.contains(&x) && test_area.contains(&y) {
-                count += 1;
-            }
-        }
-    }
-    count
+    hailstones
+        .iter()
+        .enumerate()
+        .flat_map(|(i1, h1)| {
+            hailstones
+                .iter()
+                .enumerate()
+                .filter(move |(i2, _)| i1 <= *i2)
+                .filter_map(|(_, h2)| h1.find_2d_collision(h2))
+                .filter(|(x, y)| test_area.contains(x) && test_area.contains(y))
+        })
+        .count()
 }
 
 fn part_2(input: &str) -> usize {
