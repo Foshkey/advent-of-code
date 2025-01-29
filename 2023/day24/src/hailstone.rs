@@ -1,14 +1,24 @@
+use crate::vec3::Vec3;
+
 pub struct Hailstone {
-    position: (i64, i64, i64),
-    velocity: (i64, i64, i64),
+    pub position: Vec3,
+    pub velocity: Vec3,
 }
 
 impl Hailstone {
-    pub fn find_2d_collision(&self, other: &Hailstone) -> Option<(i64, i64)> {
-        let (x1, y1, _) = self.position;
-        let (dx1, dy1, _) = self.velocity;
-        let (x2, y2, _) = other.position;
-        let (dx2, dy2, _) = other.velocity;
+    pub fn find_2d_collision(&self, other: &Hailstone) -> Option<Vec3> {
+        let Vec3 { x: x1, y: y1, z: _ } = self.position;
+        let Vec3 {
+            x: dx1,
+            y: dy1,
+            z: _,
+        } = self.velocity;
+        let Vec3 { x: x2, y: y2, z: _ } = other.position;
+        let Vec3 {
+            x: dx2,
+            y: dy2,
+            z: _,
+        } = other.velocity;
 
         // Calculate denominator first to check for parallel lines
         let denominator = dy2 * dx1 - dy1 * dx2;
@@ -26,7 +36,11 @@ impl Hailstone {
             return None; // Intersection in the past
         }
 
-        Some((intersection_x, intersection_y))
+        Some(Vec3 {
+            x: intersection_x,
+            y: intersection_y,
+            z: 0,
+        })
     }
 }
 
@@ -37,12 +51,12 @@ impl From<&str> for Hailstone {
         let mut v = v_str.split(',');
 
         Self {
-            position: (
+            position: Vec3::new(
                 p.next().unwrap().trim().parse().unwrap(),
                 p.next().unwrap().trim().parse().unwrap(),
                 p.next().unwrap().trim().parse().unwrap(),
             ),
-            velocity: (
+            velocity: Vec3::new(
                 v.next().unwrap().trim().parse().unwrap(),
                 v.next().unwrap().trim().parse().unwrap(),
                 v.next().unwrap().trim().parse().unwrap(),
