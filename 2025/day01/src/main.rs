@@ -14,20 +14,19 @@ fn main() -> Result<()> {
 
 fn part_1(input: &str) -> Result<usize> {
     let mut instructions: Instructions = input.parse()?;
-    instructions.get_password()
+    instructions.get_zero_landing_count()
 }
 
 fn part_2(input: &str) -> Result<usize> {
-    Ok(input.len())
+    let mut instructions: Instructions = input.parse()?;
+    instructions.get_zero_passing_count()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_example() {
-        let example = "L68
+    const EXAMPLE: &str = "L68
 L30
 R48
 L5
@@ -37,6 +36,14 @@ L1
 L99
 R14
 L82";
-        assert_eq!(part_1(example).unwrap(), 3);
+
+    #[test]
+    fn test_part_1() {
+        assert_eq!(part_1(EXAMPLE).unwrap(), 3);
+    }
+
+    #[test]
+    fn test_part_2() {
+        assert_eq!(part_2(EXAMPLE).unwrap(), 6);
     }
 }
