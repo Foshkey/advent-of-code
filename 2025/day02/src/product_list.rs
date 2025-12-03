@@ -41,24 +41,10 @@ fn get_sum_invalid((min, max): (usize, usize)) -> Result<usize> {
     let start = get_first_half_digits_floor(min)?;
     let end = get_first_half_digits_ceil(max)?;
 
-    let mut sum = 0;
-
-    for n in start..=end {
-        if let Some(invalid) = generate_invalid(n)
-            && (min..=max).contains(&invalid)
-        {
-            sum += invalid
-        }
-    }
-
-    Ok(sum)
-
-    // Ok((start..=end)
-    //     .map(generate_invalid)
-    //     .collect::<Result<Vec<usize>>>()?
-    //     .into_iter()
-    //     .filter(|&n| n >= min && n <= max)
-    //     .sum())
+    Ok((start..=end)
+        .filter_map(generate_invalid)
+        .filter(|&n| (min..=max).contains(&n))
+        .sum())
 }
 
 fn get_first_half_digits_floor(num: usize) -> Result<usize> {
