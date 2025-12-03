@@ -73,7 +73,7 @@ impl Maze {
                 let tentative_steps = steps[&current] + 1;
                 let is_better_path = steps
                     .get(&neighbor)
-                    .map_or(true, |&steps| tentative_steps < steps);
+                    .is_none_or(|&steps| tentative_steps < steps);
 
                 if is_better_path {
                     came_from.insert(neighbor, current);

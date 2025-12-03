@@ -63,7 +63,7 @@ impl Maze {
                 let next_score = score + cost;
                 let is_better_path = scores
                     .get(&next_position)
-                    .map_or(true, |&score| next_score <= score);
+                    .is_none_or(|&score| next_score <= score);
 
                 if !is_better_path {
                     continue;
