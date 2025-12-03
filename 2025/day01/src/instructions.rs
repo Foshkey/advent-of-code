@@ -55,30 +55,25 @@ impl Instructions {
             self.zero_count += num.unsigned_abs() / 100;
             num %= 100;
 
-            if num > 0 {
-                // Positive is straight-forward, add and correct for boundary
-                self.position += num as usize;
-                if self.position >= 100 {
-                    self.position -= 100;
+            let mut new_position = self.position as isize + num;
+
+            if new_position >= 100 {
+                // If over 100, we passed zero.
+                new_position -= 100;
+                self.zero_count += 1;
+            } else if new_position < 0 {
+                // If we're in the negative, add 100
+                new_position += 100;
+                // And if we didn't start at 0, then we passed it
+                if self.position != 0 {
                     self.zero_count += 1;
                 }
-            } else if num < 0 {
-                // Store new position as signed int
-                let mut position = self.position as isize + num;
-                // Correct if we're past 0
-                if position < 0 {
-                    position += 100;
-                    // If we didn't start a 0, count it as a zero count
-                    if self.position != 0 {
-                        self.zero_count += 1;
-                    }
-                } else if position == 0 {
-                    // If we landed on zero, count it
-                    self.zero_count += 1;
-                }
-                // Store new position
-                self.position = position as usize;
+            } else if new_position == 0 && self.position != 0 {
+                // Finally, if we landed on zero, count it
+                self.zero_count += 1;
             }
+
+            self.position = new_position as usize;
         }
 
         Ok(self.zero_count)
