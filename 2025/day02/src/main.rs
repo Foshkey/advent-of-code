@@ -14,11 +14,12 @@ fn main() -> Result<()> {
 
 fn part_1(input: &str) -> Result<usize> {
     let product_list: ProductList = input.parse()?;
-    product_list.get_sum_invalid_ids()
+    product_list.get_sum_doubles()
 }
 
 fn part_2(input: &str) -> Result<usize> {
-    Ok(input.len())
+    let product_list: ProductList = input.parse()?;
+    product_list.get_sum_multiples()
 }
 
 #[cfg(test)]
@@ -34,6 +35,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(EXAMPLE).unwrap(), 0);
+        assert_eq!(part_2(EXAMPLE).unwrap(), 4174379265);
     }
 }
