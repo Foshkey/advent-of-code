@@ -90,7 +90,25 @@ impl Homework {
 
         let mut problems = init_problems(op_line);
 
-        println!("{problems:?}");
+        for line in lines {
+            let mut ip = 0; // problems index
+            let mut io = 0; // operands index
+            for c in line.chars() {
+                // If it's a digit, store it into operands
+                if let Some(digit) = c.to_digit(10) {
+                    // If a digit is already stored, shove it to the left
+                    problems[ip].operands[io] = problems[ip].operands[io] * 10 + digit as usize;
+                }
+
+                // Increment logic
+                io += 1;
+                // Note > and not >= to account for space between problems
+                if io > problems[ip].operands.len() {
+                    ip += 1;
+                    io = 0;
+                }
+            }
+        }
 
         Self { problems }
     }
