@@ -14,7 +14,8 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
-    input.len()
+    let manifold: Manifold = input.into();
+    manifold.get_num_timelines()
 }
 
 #[cfg(test)]
@@ -45,6 +46,6 @@ mod tests {
 
     #[test]
     fn test_part_2() {
-        assert_eq!(part_2(EXAMPLE), 0);
+        assert_eq!(part_2(EXAMPLE), 40);
     }
 }

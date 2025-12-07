@@ -1,14 +1,14 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub struct Manifold {
     len: usize,
-    splitters: HashSet<(usize, usize)>,
+    splitters: BTreeSet<(usize, usize)>,
     start: (usize, usize),
 }
 
 impl From<&str> for Manifold {
     fn from(value: &str) -> Self {
-        let mut splitters = HashSet::new();
+        let mut splitters = BTreeSet::new();
         let mut start = (0, 0);
 
         for (row, line) in value.lines().enumerate() {
@@ -56,5 +56,35 @@ impl Manifold {
         }
 
         count
+    }
+
+    pub fn get_num_timelines(&self) -> usize {
+        self.get_num_timelines_rec(self.start, &mut HashMap::new())
+    }
+
+    fn get_num_timelines_rec(
+        &self,
+        beam: (usize, usize),
+        cache: &mut HashMap<(usize, usize), usize>,
+    ) -> usize {
+        if let Some(&cached_result) = cache.get(&beam) {
+            return cached_result;
+        }
+
+        let (row, col) = beam;
+
+        if row >= self.len {
+            return 1;
+        }
+
+        let result = if self.splitters.contains(&beam) {
+            self.get_num_timelines_rec((row, col - 1), cache)
+                + self.get_num_timelines_rec((row, col + 1), cache)
+        } else {
+            self.get_num_timelines_rec((row + 1, col), cache)
+        };
+
+        cache.insert(beam, result);
+        result
     }
 }
